@@ -90,6 +90,7 @@ def plan(root, now):
         'date': now.date().isoformat(), 'timezone': 'Asia/Shanghai',
         'observed_at': now.isoformat(), 'sources': due_sources(root, now),
         'windows': {kind: source_window(root, kind, now) for kind in ('x', 'paper')},
+        'selection': load_settings(root)[1]['selection'],
         'input_path': str(root / 'state/tech/collection.json'),
         'instructions': str(root / 'TECH_DIGEST.md'),
         'cost_policy': '读取正常网页，不调用付费 X 或摘要 API；由当前 Codex 任务完成摘要。',
@@ -304,6 +305,9 @@ def ingest(root, payload, now, save_local=False):
     failed = any(s['status'] != 'ok' for s in statuses.values())
     result = 'failed' if checked == 0 else ('partial' if failed else 'ok')
     day = now.date().isoformat()
+    x_cfg, paper_cfg = load_settings(root)
+    daily_limits = {'x': x_cfg['collection']['daily_target_items'],
+                    'paper': paper_cfg['selection']['daily_target_items']}
     output = root / 'reports/tech' / (day + '.md')
     with database(root) as conn:
         conn.execute('BEGIN IMMEDIATE')
@@ -328,7 +332,7 @@ def ingest(root, payload, now, save_local=False):
             if card['kind'] == 'x' and card['id'] not in today and author_count >= 2:
                 rejected.append(card['title'] + '：超过单作者配额')
                 continue
-            limit = 5 if card['kind'] == 'x' else 3
+            limit = daily_limits[card['kind']]
             if card['id'] not in today and sum(c['kind'] == card['kind'] for c in today.values()) >= limit:
                 rejected.append(card['title'] + '：超过当日精选配额')
                 continue

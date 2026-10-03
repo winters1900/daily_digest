@@ -179,6 +179,17 @@ class TechDigestTests(unittest.TestCase):
         self.assertEqual(content.count('### ['), 1)
         self.assertIn('相关解读／原论文', content)
 
+    def test_daily_ten_papers_and_retry_limit(self):
+        papers = [self.paper(url='https://proceedings.mlr.press/v306/test%d.html' % i,
+                             title='检索研究%d' % i) for i in range(10)]
+        result = self.ingest(self.root, self.payload(papers), self.now)
+        self.assertEqual(result['selected_items'], 10)
+        eleventh = self.paper(url='https://proceedings.mlr.press/v306/extra.html')
+        result = self.ingest(self.root, self.payload([eleventh]), self.now)
+        self.assertEqual(result['selected_items'], 10)
+        self.assertIn('超过当日精选配额', result['rejected'][0])
+        self.assertEqual(app.plan(self.root, self.now)['selection']['daily_target_items'], 10)
+
 
     def test_wechat_default_no_local_report_and_no_duplicate(self):
         result = app.ingest(self.root, self.payload([self.card()]), self.now)

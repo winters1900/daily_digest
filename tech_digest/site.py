@@ -4,6 +4,7 @@ import fcntl
 import html
 import json
 import re
+import shutil
 import sqlite3
 import subprocess
 import time
@@ -34,10 +35,11 @@ def prose(value):
 
 
 def shell(title, body, revision=''):
+    style_version = hashlib.sha256((Path(__file__).parent / 'web/digest.css').read_bytes()).hexdigest()[:12]
     return '''<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="digest-revision" content="''' + esc(revision) + '''"><title>''' + esc(title) + '''</title>
-<link rel="stylesheet" href="assets/digest.css"></head><body>
+<link rel="stylesheet" href="assets/digest.css?v=''' + style_version + '''"></head><body>
 <header><nav><a class="brand" href="index.html">DIGEST<span>技术日报</span></a><a href="index.html">历史归档 ↗</a></nav></header>
 <main>''' + body + '''</main><footer><span>技术日报</span><a href="index.html">查看全部日报 →</a></footer></body></html>'''
 
@@ -70,7 +72,8 @@ def card_html(c, related):
 def edition_html(data):
     day = data['day']
     cards = data['cards']
-    revision = hashlib.sha256(json.dumps(data, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    revision = hashlib.sha256(json.dumps(data, ensure_ascii=False, sort_keys=True).encode()
+                              + (Path(__file__).parent / 'web/digest.css').read_bytes()).hexdigest()
     papers = [c for c in cards if c['kind'] == 'paper']
     themes = {c.get('theme_id') for c in papers if c.get('theme_id')}
     posts = [c for c in cards if c['kind'] == 'x' and c.get('theme_id') not in themes]
@@ -135,6 +138,12 @@ def build_site(root, directory=None):
     archive += '</div>'
     atomic_write(directory / 'index.html', shell('日报归档', archive))
     atomic_write(directory / 'assets/digest.css', (Path(__file__).parent / 'web/digest.css').read_text())
+    for source in sorted((Path(__file__).parent / 'web/fonts').glob('*')):
+        if not source.is_file(): continue
+        destination = directory / 'assets/fonts' / source.name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, destination)
+        paths.append('docs/assets/fonts/' + source.name)
     atomic_write(directory / '.nojekyll', '')
     return paths + ['docs/index.html','docs/latest.html','docs/assets/digest.css','docs/.nojekyll']
 

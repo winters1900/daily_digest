@@ -71,9 +71,8 @@ sources:
   url: https://www.vldb.org/pvldb/
   verification: 核验卷期；仅选检索、向量数据库与 AI 数据系统相关研究
 selection:
-  daily_target_range:
-  - 1
-  - 3
+  daily_target_items: 10
+  discovery_candidate_target: 30
   weekly_deep_reads: 1
   window_months: 2
   allow_empty: true

@@ -13,10 +13,10 @@
 3. 来源状态每项都填写：`ok` 是内容实际加载并完成本次筛选；`blocked` 是登录/验证码/不可访问；`error` 是其他读取故障。`note` 写实际检查范围与入选/未入选原因，`evidence_urls` 写真实读取链接。来源必须记录 `coverage: window_checked/sample/index_only/unknown` 与实际使用的 `window_months: 2`。来源索引可访问不等于整个窗口筛选完成；索引只读用index_only，少量页面用sample。不能把访问成功等同完整覆盖，未充分检查时不能声称窗口内无更新。首次扩大窗口后所有固定作者都要重新检查，不能沿用原48小时或七天判断。
 4. 论文按 `paper_sources.yaml` 主题和规则从官方目录、文章页、录用决定页读取。可以用网页搜索定位，但最终核验必须用官方来源。不把所有 PMLR 论文视为 ICML，也不把 OpenReview 投稿视为录用。只选符合主题且能说明贡献、依据和局限的论文，主会/Findings/Workshop 分开标注。预印本当前不进入精选。只使用年份且没有精确日期的论文不得入选。
 5. 时间：博主与论文统一限定最近两个自然月，按北京时间自然日向前回退两个月，包含起始日；月末取目标月最后一天。例如2026-10-03对应2026-08-03至2026-10-03。采集频率daily/weekly不改变内容窗口。以 `--plan` 的 `windows` 为准。只有旧预印本近期发表时用 `event_type: publication_update`，首次公开日期未知时也用该标记。保持论文首次公开、录用和发表日期分开。不得用采集时间充当发表时间。相对时间使用 `relative_age_hours` 并保留原文依据，采集批次六小时内有效。
-6. 用当前 Codex 模型生成原创中文卡片，基于实际读到的正文。每条包括标题、摘要、价值、局限、实践动作、阅读深度与原文链接，X另填 `content_type: 工程实践/研究解读/作者观点/待核验线索`；优先带方法、代码、实验设置的技术内容，观点与线索作为补充，不用泛泛学习建议凑数。`evidence_excerpt` 保留短摘录用于审计。仅看到摘要时用 `reading_depth: 摘要`，不得标记为正文精读；X 可见帖子正文使用 `帖子`，截断要注明。每日博主最多五条、每人最多两条；论文最多三篇。没有优质新内容就留空。
+6. 用当前 Codex 模型生成原创中文卡片，基于实际读到的正文。每条包括标题、摘要、价值、局限、实践动作、阅读深度与原文链接，X另填 `content_type: 工程实践/研究解读/作者观点/待核验线索`；优先带方法、代码、实验设置的技术内容，观点与线索作为补充，不用泛泛学习建议凑数。`evidence_excerpt` 保留短摘录用于审计。仅看到摘要时用 `reading_depth: 摘要`，不得标记为正文精读；X 可见帖子正文使用 `帖子`，截断要注明。每日博主最多五条、每人最多两条；论文目标每天十篇，上限十篇；按配置先检索约三十篇候选，再核验并排序筛选。跨来源发现与历史去重，优先相关性、证据和信息密度；合格且未推荐的论文不足十篇时如实说明原因，不能放宽两个月窗口、重复推荐或虚构内容凑数。没有优质新内容就留空。
 7. 将采集结果保存为 `state/tech/collection.json`。格式见 `--plan` 的 `input_schema`。`observed_at` 使用本次真实时间、包含时区。来源条目含 `id/status/note/evidence_urls`，卡片 `source_id` 必须匹配计划。论文日期必须说明事件类型：单篇文章发表、录用或论文集上线；不能把卷集上线日期写成论文首次发表日期。可用 `date_label` 与 `date_evidence_url` 明示。论文 `verification_url` 必须指向对应会刊官方域名，ICLR/TMLR 可用 OpenReview 最终决定。可补充 `theme_id` 合并博主解读和同一原论文。
 8. 执行 `.venv/bin/python main.py --input state/tech/collection.json --push`。检查 JSON 输出和退出状态：0=全部本次来源正常，2=部分失败或漏检，1=全部失败/输入错误。逐条检查 `rejected`；修正字段或证据，不改造日期让旧内容入选。输入不合法时不得报告任务完成。
-9. 技术日报现在生成HTML，写入本仓库 `docs/YYYY-MM-DD.html`，归档首页为 `docs/index.html`，最新一期为 `docs/latest.html`；不生成本地Markdown。配置见 `tech_delivery.yaml`，唯一远端为 `https://github.com/winters1900/daily_digest.git`。程序只暂存生成的HTML与CSS、提交中文归档信息并推送main。不可使用 `git add .`，不可上传邮箱报告、state目录、配置中的私人邮箱或任何密钥。项目代码已在同一仓库维护。
+9. 技术日报现在生成HTML，写入本仓库 `docs/YYYY-MM-DD.html`，归档首页为 `docs/index.html`，最新一期为 `docs/latest.html`；不生成本地Markdown。配置见 `tech_delivery.yaml`，唯一远端为 `https://github.com/winters1900/daily_digest.git`。程序只暂存生成的HTML、CSS与公开字体资源、提交中文归档信息并推送main。不可使用 `git add .`，不可上传邮箱报告、state目录、配置中的私人邮箱或任何密钥。项目代码已在同一仓库维护。
 10. 推送后程序校验GitHub Pages实际页面的版本标记，确认当前HTML已上线，再经系统钥匙串中的Server酱配置把标题和阅读链接发到微信。不会在微信发送整篇正文。每天最多推送一次链接；发送失败或网页未就绪用 `.venv/bin/python main.py --publish YYYY-MM-DD` 重试，未上线时不发送失效链接。当天已推送后新采集内容仍留待次日，修订页面不重复发微信。成功以Server酱接受请求为准，不代表用户已阅读。正常发送在聊天保持安静；只有推送失败、登录失效或需要用户处理时通知。
 
 
@@ -46,4 +46,4 @@
 
 ## 页面与GitHub
 
-开头只显示日期与标题，不放“北京时间／优质内容”等说明。论文优先展示，博主分享和周报分区；阅读范围、采集状态放在末尾折叠区。HTML支持手机屏幕和系统深色模式，所有外部文本经转义与标签过滤。GitHub Pages从main分支的docs目录发布，网站为 https://winters1900.github.io/daily_digest/ 。采集依然由本机Codex自动任务执行；GitHub负责存储和托管页面。
+开头只显示日期与标题，不放“北京时间／优质内容”等说明。论文优先展示，博主分享和周报分区；阅读范围、采集状态放在末尾折叠区。标题与正文统一使用中文衬线体，思源宋体（Noto Serif SC）字体与许可证随网页托管，不依赖外部字体服务。HTML支持手机屏幕和系统深色模式，所有外部文本经转义与标签过滤。GitHub Pages从main分支的docs目录发布，网站为 https://winters1900.github.io/daily_digest/ 。采集依然由本机Codex自动任务执行；GitHub负责存储和托管页面。
