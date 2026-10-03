@@ -52,11 +52,15 @@ def source_window(root, kind, now):
 
 
 def sources(root):
+    from . import pipeline
+    if pipeline.enabled(root): return pipeline.registry(root)
     x, papers = load_settings(root)
     result = []
     for account in x['accounts']:
-        result.append(dict(account, id='x:' + account['handle'].lower(), kind='x'))
+        if account.get('core') is False: continue
+        result.append(dict(account, id='x:' + account['handle'].lower(), kind='x', cadence=account.get('legacy_cadence',account['cadence'])))
     for index, source in enumerate(papers['sources']):
+        if papers.get('version') == 2 and not source.get('legacy_ids'): continue
         result.append(dict(source, id='paper:' + str(index), kind='paper', cadence='daily'))
     return result
 
@@ -77,6 +81,8 @@ def database(root):
 
 
 def due_sources(root, now):
+    from . import pipeline
+    if pipeline.enabled(root): return pipeline.due(root,now)
     with database(root) as conn:
         previous = {row[0]: row[1:] for row in conn.execute('SELECT id, checked_at, window_months FROM checks')}
     # 首次检查所有来源；每周作者七天内已检查过时跳过。
@@ -86,6 +92,8 @@ def due_sources(root, now):
 
 
 def plan(root, now):
+    from . import pipeline
+    if pipeline.enabled(root): return pipeline.plan(root,now)
     return {
         'date': now.date().isoformat(), 'timezone': 'Asia/Shanghai',
         'observed_at': now.isoformat(), 'sources': due_sources(root, now),
@@ -274,6 +282,8 @@ def atomic_write(path, content):
 
 
 def ingest(root, payload, now, save_local=False):
+    from . import pipeline
+    if pipeline.enabled(root): return pipeline.ingest(root,payload,now)
     observed = timestamp(payload['observed_at'])
     if observed > now + timedelta(minutes=5) or now - observed > timedelta(hours=6):
         raise ValueError('采集批次过期或来自未来；请重新采集')
@@ -414,14 +424,40 @@ def main(argv=None):
     parser.add_argument('--save-local', action='store_true', help='可选：另存本地Markdown，默认只推送')
     parser.add_argument('--publish', metavar='YYYY-MM-DD', help='发布已归档日报HTML并推送链接')
     parser.add_argument('--build-site', action='store_true', help='生成本仓库docs目录的HTML日报')
+    parser.add_argument('--collect', action='store_true', help='采集公开来源并保存候选及浏览器补查任务')
+    parser.add_argument('--source', action='append', help='限定公开采集来源，可重复指定稳定 ID')
+    parser.add_argument('--review-queue', action='store_true', help='输出 BM25 初筛后的待审核候选')
+    parser.add_argument('--compose', action='store_true', help='按证据评分与分区配额生成日报')
+    parser.add_argument('--dry-run', action='store_true', help='只预览精选，不生成或发送日报')
+    parser.add_argument('--health', action='store_true', help='候选、覆盖进度与投递健康检查')
+    parser.add_argument('--feedback', nargs=2, metavar=('ID','ACTION'), help='记录 liked/disliked/read 明确反馈')
+    parser.add_argument('--reason', default='', help='反馈原因')
+    parser.add_argument('--no-notify', action='store_true', help='发布网页而不发送微信')
+    parser.add_argument('--resolve-delivery', nargs=2, metavar=('DAY','DECISION'), help='人工核对发送记录后标记 sent/retry，必须说明依据')
     args = parser.parse_args(argv)
     now = datetime.now(TZ)
+    from . import pipeline
     try:
-        if args.plan:
+        if args.collect:
+            from .adapters.public import collect
+            result=collect(ROOT,now,only=args.source)
+        elif args.review_queue:
+            result=pipeline.review_queue(ROOT,now)
+        elif args.compose:
+            result=pipeline.compose(ROOT,now,dry_run=args.dry_run)
+            if args.push and not args.dry_run and result['status']!='failed' and result['selected_items'] and not result.get('frozen'):
+                result.update(push_pending(ROOT,now))
+        elif args.health:
+            result=pipeline.health(ROOT,now)
+        elif args.feedback:
+            result=pipeline.feedback(ROOT,*args.feedback,args.reason,now)
+        elif args.resolve_delivery:
+            result=pipeline.resolve_delivery(ROOT,*args.resolve_delivery,args.reason,now)
+        elif args.plan:
             result = plan(ROOT, now)
         elif args.publish:
             from .site import publish_pending
-            result = publish_pending(ROOT, now, day=args.publish)
+            result = publish_pending(ROOT, now, day=args.publish,notify=not args.no_notify)
         elif args.build_site:
             from .site import build_site
             result = {'files': build_site(ROOT)}
@@ -438,6 +474,9 @@ def main(argv=None):
                 raise ValueError('没有浏览器采集批次；按 TECH_DIGEST.md 采集后用 --input 导入')
             result = ingest(ROOT, json.loads(path.read_text(encoding='utf-8')), now, save_local=args.save_local)
             if args.push:
+                if pipeline.enabled(ROOT): result.update(pipeline.compose(ROOT,now))
+                if result.get('status')=='failed' or result.get('selected_items')==0:
+                    raise ValueError('采集失败或没有合格精选，不推送空日报')
                 result.update(push_pending(ROOT, now))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return {'partial': 2, 'failed': 1}.get(result.get('status'), 0)

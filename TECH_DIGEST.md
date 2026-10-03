@@ -1,49 +1,94 @@
-# 技术知识日报运行手册
+# AI 技术日报运行手册
 
-## 实际接入方式
+## 运行方式与成本
 
-`main.py` 默认进入新技术日报程序，原四来源版本保留为 `main.py --legacy`。新程序由 Codex 的浏览器和联网读取能力采集，Python 不连接 X 私有接口、不导出 Cookie、不调用付费摘要 API。采集与中文筛选由当前 Codex 模型执行，因此会消耗 Codex 账号额度。
+每天北京时间 10:30 由现有 Codex 自动任务启动，工作目录 `/Users/winters/Desktop/daily-digest`。Python 采集公开 API、RSS 和目录；当前 Codex 模型通过正常浏览器补充登录来源、读原文、生成原创中文审核卡片。继续使用现有 Codex 额度，不调用付费摘要、X 抓取或转录服务，不导出 Cookie。本机需在线，Codex 和 X 会话需有效；关机、休眠或额度不足会影响执行。GitHub 负责归档和 Pages 托管，不负责登录采集。
 
-每日北京时间 10:30，自动任务在此聊天执行以下完整流程，报告通过邮件模块相同的 Server酱通道发送到个人微信，复用系统钥匙串的 `serverchan_key`。失败或登录失效必须明确报告，不能写成“无更新”。
+日报目标 10 篇论文、最多 8 条资讯。论文按已录用会议／正式期刊、arXiv 前沿、Semantic Scholar 推荐顺序分区，目标为 5/3/2，跨区共享额度，不足从剩余合格候选补位。预印本明确标注未同行评审，发现渠道与发表状态独立。五个主题等权，候选充足时至少覆盖四类，单类最多三篇；资讯按研究动态、工程实践、开源与工具、深度解读组织，每作者最多两条，同一事件只展示一次，Product Hunt 最多一条。质量不足时少推并说明。
 
-## 每次采集步骤
+标题、正文使用自托管中文衬线体；顶部显示日期、标题、目录与重点入口。采集说明放在末尾折叠区，不添加“北京时间／优质内容”开头。
 
-1. 工作目录 `/Users/winters/Desktop/daily-digest`，执行 `.venv/bin/python main.py --plan`。输出 `sources` 是本次应检查的全部来源：每日作者每次检查，每周作者首次检查后每七天检查。论文来源每日检查。
-2. 根据 `x_accounts.yaml` 只访问计划中博主个人页。浏览器优先复用已登录 X 标签；旧标签不存在时新建标签验证登录。用正常页面操作获取帖子内容，必要时展开正文或打开详情、滚动读取。不得采集社区、首页推荐、回复页或名单外作者。不要按浏览器首次加载的空白或加载提示判定无更新。
-3. 来源状态每项都填写：`ok` 是内容实际加载并完成本次筛选；`blocked` 是登录/验证码/不可访问；`error` 是其他读取故障。`note` 写实际检查范围与入选/未入选原因，`evidence_urls` 写真实读取链接。来源必须记录 `coverage: window_checked/sample/index_only/unknown` 与实际使用的 `window_months: 2`。来源索引可访问不等于整个窗口筛选完成；索引只读用index_only，少量页面用sample。不能把访问成功等同完整覆盖，未充分检查时不能声称窗口内无更新。首次扩大窗口后所有固定作者都要重新检查，不能沿用原48小时或七天判断。
-4. 论文按 `paper_sources.yaml` 主题和规则从官方目录、文章页、录用决定页读取。可以用网页搜索定位，但最终核验必须用官方来源。不把所有 PMLR 论文视为 ICML，也不把 OpenReview 投稿视为录用。只选符合主题且能说明贡献、依据和局限的论文，主会/Findings/Workshop 分开标注。预印本当前不进入精选。只使用年份且没有精确日期的论文不得入选。
-5. 时间：博主与论文统一限定最近两个自然月，按北京时间自然日向前回退两个月，包含起始日；月末取目标月最后一天。例如2026-10-03对应2026-08-03至2026-10-03。采集频率daily/weekly不改变内容窗口。以 `--plan` 的 `windows` 为准。只有旧预印本近期发表时用 `event_type: publication_update`，首次公开日期未知时也用该标记。保持论文首次公开、录用和发表日期分开。不得用采集时间充当发表时间。相对时间使用 `relative_age_hours` 并保留原文依据，采集批次六小时内有效。
-6. 用当前 Codex 模型生成原创中文卡片，基于实际读到的正文。每条包括标题、摘要、价值、局限、实践动作、阅读深度与原文链接，X另填 `content_type: 工程实践/研究解读/作者观点/待核验线索`；优先带方法、代码、实验设置的技术内容，观点与线索作为补充，不用泛泛学习建议凑数。`evidence_excerpt` 保留短摘录用于审计。仅看到摘要时用 `reading_depth: 摘要`，不得标记为正文精读；X 可见帖子正文使用 `帖子`，截断要注明。每日博主最多五条、每人最多两条；论文目标每天十篇，上限十篇；按配置先检索约三十篇候选，再核验并排序筛选。跨来源发现与历史去重，优先相关性、证据和信息密度；合格且未推荐的论文不足十篇时如实说明原因，不能放宽两个月窗口、重复推荐或虚构内容凑数。没有优质新内容就留空。
-7. 将采集结果保存为 `state/tech/collection.json`。格式见 `--plan` 的 `input_schema`。`observed_at` 使用本次真实时间、包含时区。来源条目含 `id/status/note/evidence_urls`，卡片 `source_id` 必须匹配计划。论文日期必须说明事件类型：单篇文章发表、录用或论文集上线；不能把卷集上线日期写成论文首次发表日期。可用 `date_label` 与 `date_evidence_url` 明示。论文 `verification_url` 必须指向对应会刊官方域名，ICLR/TMLR 可用 OpenReview 最终决定。可补充 `theme_id` 合并博主解读和同一原论文。
-8. 执行 `.venv/bin/python main.py --input state/tech/collection.json --push`。检查 JSON 输出和退出状态：0=全部本次来源正常，2=部分失败或漏检，1=全部失败/输入错误。逐条检查 `rejected`；修正字段或证据，不改造日期让旧内容入选。输入不合法时不得报告任务完成。
-9. 技术日报现在生成HTML，写入本仓库 `docs/YYYY-MM-DD.html`，归档首页为 `docs/index.html`，最新一期为 `docs/latest.html`；不生成本地Markdown。配置见 `tech_delivery.yaml`，唯一远端为 `https://github.com/winters1900/daily_digest.git`。程序只暂存生成的HTML、CSS与公开字体资源、提交中文归档信息并推送main。不可使用 `git add .`，不可上传邮箱报告、state目录、配置中的私人邮箱或任何密钥。项目代码已在同一仓库维护。
-10. 推送后程序校验GitHub Pages实际页面的版本标记，确认当前HTML已上线，再经系统钥匙串中的Server酱配置把标题和阅读链接发到微信。不会在微信发送整篇正文。每天最多推送一次链接；发送失败或网页未就绪用 `.venv/bin/python main.py --publish YYYY-MM-DD` 重试，未上线时不发送失效链接。当天已推送后新采集内容仍留待次日，修订页面不重复发微信。成功以Server酱接受请求为准，不代表用户已阅读。正常发送在聊天保持安静；只有推送失败、登录失效或需要用户处理时通知。
+## 每日完整流程
 
+1. 执行 `--health` 检查发送待核对、来源连续失败和历史补查进度，再执行 `--plan` 获取本次来源与时间窗口。
+2. 执行 `--collect`。原始内容进入 SQLite 待审核池，采集批次为 `state/tech/public_collection.json`，浏览器任务为 `state/tech/browser_tasks.json`。公开接口限流遵守 Retry-After，每次最多三次请求；长等待保存下次可重试时间，不阻塞全部来源。返回非零不代表合格候选全部丢失。
+3. 通过正常 Codex 浏览器处理浏览器任务与官方核验。X 只读配置内固定作者的个人页、原帖、作者站内搜索，不读首页推荐或社区。新账号 `identity_status: pending` 必须取得可信身份链接后才允许入选；机构账号单独标注。原 10 位每日检查，新增 30 位分三组轮换。首次检查全部账号不受轮换限制。Reddit 仅限配置的五个版块。
+4. 每个来源提交真实状态 `ok/blocked/error/needs_browser`、`note`、`evidence_urls`、`coverage: window_checked/sample/index_only/unknown` 和 `window_months: 2`。读取目录不是全文阅读，抽样不是全量覆盖。浏览器补查未完成时保存 `backfill_cursor`；只有实际检查完整窗口才能设置 `backfill_complete: true`。
+5. 执行 `--review-queue`，每次最多 50 篇论文、40 条资讯，经主题 BM25 初筛。打开原文核验，完成结构化评分，不把元数据、热度或关键词匹配视为审核完成。重复执行可继续处理剩余队列。
+6. 保存当前时间的审核 JSON，运行 `--input` 导入。逐条检查 `rejected`，缺证据留在待审核池，不修改日期强行入选。运行 `--compose --dry-run` 查看精选并逐条核验。
+7. 正式执行 `--compose --push`：生成日报、提交公开 HTML/CSS/字体到唯一仓库 winters1900/daily_digest，确认 Pages 版本上线后才通过邮件模块的 Server酱发微信阅读链接。正常完成保持安静，只有故障或需处理时通知。
+8. 发送后当日集合冻结，后补候选留次日。页面未就绪可重试 `--publish YYYY-MM-DD`。发送超时、进程中断或结果不明确记录为待核对，禁止盲目重发；核对 Server酱发送记录后用 `--resolve-delivery YYYY-MM-DD sent/retry --reason 核对依据` 明确结论。
 
-## 论文发现与每周精读
+所有来源失败时保留上一份有效日报。部分失败仍可发布合格精选，来源缺口明确显示；没有合格内容不推空日报。Server酱接受请求不代表用户已阅读。
 
-官方论文列表通常批量发布，不能保证每天有新论文。期刊可以补充连续更新。每周六从本周已选论文中选一篇，根据公开全文撰写精读内容，放入采集JSON的 `weekly_review` 字符串，合并到周六HTML日报；微信推送同一页面链接，不另存Markdown：问题、方法、实验设置、比较基线、局限、复现路径。无法获取全文时明确跳过全文精读并记录原因，不购买全文、不虚构实验。周报区分已完成的阅读与尚未执行的实验计划，不声称已复现。
+## 审核 JSON
 
-## 本地命令
+```json
+{
+  "observed_at": "带时区的当前真实时间",
+  "sources": [],
+  "items": [],
+  "reviews": [{
+    "id": "--review-queue 中的候选 ID",
+    "title": "中文标题",
+    "topic": "language",
+    "summary": "问题、贡献、结果及实验条件；重要数值附可定位依据",
+    "why": "阅读价值",
+    "limitations": "方法局限、阅读边界",
+    "action": "可选的具体实践建议",
+    "reading_depth": "摘要",
+    "evidence_excerpt": "短证据摘录或定位说明",
+    "review_evidence": ["https://原文"],
+    "date_evidence_url": "https://日期依据",
+    "quality_scores": {"relevance": 4, "evidence": 4, "novelty": 4, "recency": 4, "reproducibility": 3},
+    "review_status": "preprint",
+    "first_public_date": "YYYY-MM-DD"
+  }]
+}
+```
+
+五项评分均为 0–5：相关性30%、证据质量25%、新增信息20%、时效15%、代码／数据／可复现性10%；加权换算为100分，65分门槛，热度只在同分时排序。评分必须基于读到的证据，时效依据真实事件日期。主题为 language/vision/multimodal/reinforcement/systems；阅读深度为摘要/正文/帖子/字幕/复现，未执行实验不得标记复现。
+
+论文 `review_status` 为 accepted/published/preprint。录用或发表须提供官方 `verification_url`、配置内 `venue` 和 `track: main/journal/findings/workshop/demo`，日期为 `accepted_date/published_date`，保留 `first_public_date/updated_date`。arXiv 须有公开摘要和身份 ID。资讯须有 `published_date`、`news_section`、`event_id`；X 新作者另附 `identity_verified` 与 `identity_evidence_url`；视频必须有可读 `transcript_url/transcript_excerpt`，仅标题不能生成摘要；GitHub 项目必须有 `technical_change/change_evidence_url`，提交时间与星数不能冒充发布。
+
+日期限定最近两个自然月，包含起始日，月末取目标月最后一天。例如 2026-10-04 对应 2026-08-04 至 2026-10-04。arXiv 普通更新、HF 上榜和转载不刷新首次公开日期；旧论文近期录用／发表标为发表动态。Semantic Scholar 与 HF 元数据回到官方论文核验日期，不自动视作录用。仅年份、日期缺失、未来日期不得入选。
+
+## 来源、身份与反馈
+
+公开配置：`digest_sources.yaml`、`paper_sources.yaml`、`x_accounts.yaml`、`research_seeds.yaml`。arXiv 八类、Semantic Scholar、HF Daily Papers、AI 官方来源、HN、Reddit、六个 YouTube 频道、GitHub Trending、Product Hunt 已有适配器；会刊官方目录增加 CVPR、ECCV。适配器能发现候选不代表已完成原文核验。免费接口不可用时保留来源缺口；YouTube 无字幕时只保留线索。
+
+arXiv 历史快照按提交时间升序分页保存 offset，同时读取最新页重叠检查；其他 RSS 通常只提供有限最新条目，历史不足由浏览器任务按时间区间继续补查，不能声称已检查全窗口。各源独立保存检查时间、覆盖、游标、故障和每次发现／合并／核验／入选指标。
+
+DOI、去版本 arXiv ID、OpenReview ID、Semantic Scholar ID 进行身份合并。标题相似只生成待核验建议，不能擅自合并。博主解读、新闻与论文关联同一主题，避免重复占额度。旧数字论文来源 ID 自动映射稳定 ID；旧采集批次缺少新证据或评分进入待审核，历史日报不重新排序。
+
+种子按五领域各两篇，官方身份已核验，标为系统配置，可早于窗口；推荐结果仍必须满足窗口。参考项目仅借鉴设计，未复制其源码。喜欢／不感兴趣／已读支持聊天或 CLI：
+
+```sh
+.venv/bin/python main.py --feedback arxiv:2609.12345 liked --reason '关注这个方法'
+.venv/bin/python main.py --feedback 候选ID disliked --reason '与方向无关'
+.venv/bin/python main.py --feedback 候选ID read
+```
+
+聊天中明确反馈须由 Codex 找到对应候选并调用上述命令。仅喜欢和不感兴趣影响主题排序与推荐种子，已读不算负反馈，未点击也不算负反馈。首版无网页反馈服务器。
+
+## 命令与交付
 
 ```sh
 .venv/bin/python main.py --plan
-.venv/bin/python main.py --input state/tech/collection.json --push
-.venv/bin/python main.py --push
-.venv/bin/python main.py --build-site
+.venv/bin/python main.py --collect
+.venv/bin/python main.py --collect --source discovery:arxiv
+.venv/bin/python main.py --review-queue
+.venv/bin/python main.py --input state/tech/reviews.json
+.venv/bin/python main.py --compose --dry-run
+.venv/bin/python main.py --compose --push
+.venv/bin/python main.py --compose
+.venv/bin/python main.py --publish YYYY-MM-DD --no-notify
 .venv/bin/python main.py --publish YYYY-MM-DD
+.venv/bin/python main.py --health
 .venv/bin/python main.py --status
-.venv/bin/python -m unittest discover -s tests -p 'test_tech_digest.py'
+.venv/bin/python -m unittest discover -s tests
 ```
 
-`--save-local` 仅在用户明确要求本地导出时使用。此前历史Markdown保留，今后技术HTML统一存入GitHub仓库docs目录。
+`--no-notify` 用于发布演练，不发送微信；`--dry-run` 不生成发送队列。退出0正常、2部分来源故障、1失败或输入错误。周六可将真实全文精读写入 `weekly_review` 合并当日页面，无法取得正文须跳过并说明。
 
-独立执行 Python 只会导入最近的有效采集批次，不能替代浏览器采集。定时采集需要 Codex 自动任务运行及有效的浏览器会话。电脑休眠、网络中断、登录过期或网页改版会影响运行。
-
-## 最近两个月的发现策略
-
-时间窗口是候选范围，不是每天重复两个月内的内容。首次扩大窗口应补查此前被短窗口排除的文章，优先近期且信息密度高的未推荐内容；后续结合历史去重增量发现。X可先在每位名单作者个人页检查原创，再用该作者的站内搜索限定起始日，打开候选原帖核验；不收集名单外搜索结果。官方论文来源按卷期和文章页筛选，若检索受限则记录实际覆盖范围。无法完成窗口检查时保持sample/index_only并留待后续补查，不伪造检查成功。
-
-## 页面与GitHub
-
-开头只显示日期与标题，不放“北京时间／优质内容”等说明。论文优先展示，博主分享和周报分区；阅读范围、采集状态放在末尾折叠区。标题与正文统一使用中文衬线体，思源宋体（Noto Serif SC）字体与许可证随网页托管，不依赖外部字体服务。HTML支持手机屏幕和系统深色模式，所有外部文本经转义与标签过滤。GitHub Pages从main分支的docs目录发布，网站为 https://winters1900.github.io/daily_digest/ 。采集依然由本机Codex自动任务执行；GitHub负责存储和托管页面。
+公开仓库只保存代码、公开配置、`docs/YYYY-MM-DD.html`、`index.html`、`latest.html` 和资源。候选、原始内容、反馈、邮件数据与凭据留在忽略的 state 或钥匙串；不得 `git add .`。网页为 https://winters1900.github.io/daily_digest/ 。旧四来源程序保留 `main.py --legacy`，邮件模块独立每天10:00，不受技术日报改动影响。

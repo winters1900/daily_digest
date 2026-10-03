@@ -47,15 +47,15 @@ def shell(title, body, revision=''):
 def card_html(c, related):
     paper = c['kind'] == 'paper'
     category = c.get('venue', '论文') if paper else c.get('content_type', '技术分享')
-    observation = category in {'作者观点', '待核验线索'}
+    observation = category in {'作者观点', '待核验线索'} or c.get('review_status') == 'preprint'
     identity = category if paper else c.get('author', '')
     track = {'main':'主会','journal':'期刊','findings':'Findings','workshop':'Workshop','demo':'Demo'}.get(c.get('track'), '')
     meta = (track + ' · ' if paper else '') + c.get('published_label', c.get('published_date', '日期待核验'))
     if paper:
-        meta += ' · ' + c.get('date_label', '发表／录用日期') + ' · 首次公开：' + c.get('first_public_date', '未知')
+        meta += ' · ' + c.get('date_label', '首次公开日期' if c.get('review_status')=='preprint' else '发表／录用日期') + ' · 首次公开：' + c.get('first_public_date', '未知')
         if c.get('event_type') == 'publication_update':
             meta += ' · 发表动态'
-    review_label = {'published':'已发表', 'accepted':'已录用'}.get(c.get('review_status'), '已核验')
+    review_label = {'published':'已发表', 'accepted':'已录用','preprint':'预印本 · 未同行评审'}.get(c.get('review_status'), '已核验')
     content = '<article class="card"><div class="eyebrow"><span class="badge' + (' observation' if observation else '') + '">' + esc(category) + '</span><span>' + esc(identity if not paper else review_label) + '</span><span>阅读：' + esc(c.get('reading_depth','未标明')) + '</span></div>'
     content += '<h3>' + link(c['url'], c['title']) + '</h3><div class="meta">' + esc(meta) + '</div>'
     content += prose(c['summary']) + '<p class="value"><strong>为什么读</strong>' + esc(c['why']) + '</p>'
@@ -65,11 +65,15 @@ def card_html(c, related):
     for field, label in [('code_url','代码 ↗'),('verification_url','会刊核验 ↗'),('date_evidence_url','日期依据 ↗')]:
         if c.get(field): content += link(c[field], label)
     for other in related: content += link(other['url'], other['title'])
-    content += '</div><details><summary>阅读边界与局限</summary>' + prose(c['limitations']) + '</details></article>'
+    for other in c.get('related_links',[]): content += link(other['url'], other['title'])
+    if c.get('discovery_sources'):
+        content += '<span class="discovery">发现渠道：' + esc(' / '.join(c.get('discovery_labels',c['discovery_sources']))) + '</span>'
+    content += '</div><details><summary>阅读边界与局限</summary>' + prose(c['limitations']) + ('<p><strong>证据定位</strong> '+esc(c['evidence_excerpt'])+'</p>' if c.get('evidence_excerpt') else '') + '</details></article>'
     return content
 
 
 def edition_html(data):
+    if data.get('pipeline_version') == 2: return edition_v2_html(data)
     day = data['day']
     cards = data['cards']
     revision = hashlib.sha256(json.dumps(data, ensure_ascii=False, sort_keys=True).encode()
@@ -106,8 +110,45 @@ def edition_html(data):
     return shell('技术日报 · ' + day, body, revision)
 
 
+def edition_v2_html(data):
+    from .pipeline import NEWS_SECTIONS
+    day=data['day'];cards=data['cards']
+    revision=hashlib.sha256(json.dumps(data,ensure_ascii=False,sort_keys=True).encode()
+                            +(Path(__file__).parent/'web/digest.css').read_bytes()+Path(__file__).read_bytes()).hexdigest()
+    groups=[('peer_reviewed','已录用会议／正式期刊','PEER REVIEWED'),('arxiv','arXiv 前沿','PREPRINTS'),('recommended','Semantic Scholar 推荐','FOR YOU')]
+    sections=[(anchor,title,subtitle,[c for c in cards if c['kind']=='paper' and c.get('paper_section')==anchor]) for anchor,title,subtitle in groups]
+    sections += [('news-'+str(i),name,'NEWS & IDEAS',[c for c in cards if c['kind']!='paper' and c.get('news_section')==name]) for i,name in enumerate(NEWS_SECTIONS)]
+    tabs=''.join('<a href="#'+anchor+'">'+esc(title)+' · '+str(len(group))+'</a>' for anchor,title,_,group in sections if group or anchor in {'peer_reviewed','arxiv','recommended'})
+    body='<div class="masthead"><div class="date">'+esc(day.replace('-','.'))+'</div><h1>技术日报</h1><div class="tabs">'+tabs+'</div></div>'
+    featured=sorted(cards,key=lambda c:-c.get('ranking_score',0))[:3]
+    if featured:
+        body+='<div class="highlights"><strong>本期重点</strong>'+''.join('<a href="#item-'+esc(c['id'])+'">'+esc(c['title'])+'</a>' for c in featured)+'</div>'
+    body+='<div class="layout"><div>'
+    for anchor,title,subtitle,selected in sections:
+        if not selected and anchor.startswith('news-'):continue
+        body+='<section class="section" id="'+anchor+'"><div class="section-title"><h2>'+title+'</h2><span>'+subtitle+'</span></div>'
+        for c in selected:body+='<div id="item-'+esc(c['id'])+'">'+card_html(c,[])+'</div>'
+        if not selected:body+='<p class="empty">本期没有通过核验、去重与质量筛选的候选。</p>'
+        body+='</section>'
+    if data.get('weekly_review'):
+        review=prose(data['weekly_review']).replace('<h1>','<h3>').replace('</h1>','</h3>').replace('<h2>','<h4>').replace('</h2>','</h4>')
+        body+='<section class="section" id="weekly"><div class="section-title"><h2>本周精读</h2></div><div class="weekly">'+review+'</div></section>'
+    body+='<details class="collection"><summary>采集说明与来源 · '+str(len(data.get('sources',[])))+'</summary>'
+    window=data.get('windows',{}).get('paper',{})
+    body+='<p>筛选范围：'+esc(window.get('start',''))+' 至 '+esc(window.get('end',''))+'</p>'
+    body+=''.join('<p>'+esc(reason)+'</p>' for reason in data.get('shortfalls',[]))
+    body+='<ul>'
+    for source in data.get('sources',[]):
+        body+='<li><strong>'+esc(source['id'])+'</strong> · '+esc(source.get('status','unknown'))+' · '+esc(source.get('coverage','unknown'))+'<br>'+esc(source.get('note',''))
+        body+='<br>发现 '+str(source.get('discovered',0))+' · 合并 '+str(source.get('merged',0))+' · 核验 '+str(source.get('verified',0))+' · 入选 '+str(source.get('selected',0))+'</li>'
+    body+='</ul><p>抽样或索引读取不代表已检查整个窗口；发现渠道不等于同行评审状态。</p></details></div>'
+    body+='<aside class="side"><div class="side-inner"><p>本期目录</p>'+''.join('<a href="#'+a+'">'+esc(t)+'</a>' for a,t,_,g in sections if g or a in {'peer_reviewed','arxiv','recommended'})+'</div></aside></div>'
+    return shell('技术日报 · '+day,body,revision)
+
+
 def init_editions(conn):
     conn.execute('CREATE TABLE IF NOT EXISTS web_editions (day TEXT PRIMARY KEY, data TEXT NOT NULL, url TEXT, sent_at TEXT)')
+    conn.execute('CREATE TABLE IF NOT EXISTS send_attempts (day TEXT PRIMARY KEY, state TEXT NOT NULL, attempted_at TEXT, reason TEXT)')
 
 
 def queue_edition(conn, day, data):
@@ -188,6 +229,8 @@ def _publish_pending(root, now, day=None, notify=True):
         row = conn.execute('SELECT day,data,sent_at FROM web_editions WHERE day=?', (day,)).fetchone() if day else conn.execute('SELECT day,data,sent_at FROM web_editions WHERE sent_at IS NULL ORDER BY day LIMIT 1').fetchone()
     if row is None: return {'delivery':'nothing_pending'}
     day, raw, sent = row
+    data=json.loads(raw)
+    if data.get('status')=='failed' or not data.get('cards'):raise RuntimeError('采集失败或日报为空，不发布无效日报')
     paths = build_site(root)
     staged = git(root, ['diff','--cached','--name-only'])
     if staged: raise RuntimeError('暂存区有其他修改，请先处理后再发布日报')
@@ -207,12 +250,27 @@ def _publish_pending(root, now, day=None, notify=True):
         if time.monotonic() >= deadline: raise RuntimeError('HTML已推送到GitHub，网页尚未发布；可用 --publish 重试，不发送无效链接')
         time.sleep(5)
     if notify and not sent:
-        send_wechat(day, '[打开技术日报](' + url + ')\n\n[历史归档](' + cfg['base_url'].rstrip('/') + '/index.html)', title='技术日报 ' + day)
+        with database(root) as conn:
+            attempt=conn.execute('SELECT state FROM send_attempts WHERE day=?',(day,)).fetchone()
+            if attempt and attempt[0] in {'sending','uncertain'}:
+                raise RuntimeError('微信发送结果待核对；请先核对 Server酱记录，再使用 --resolve-delivery，避免重复发送')
+            conn.execute("INSERT OR REPLACE INTO send_attempts VALUES (?,'sending',?,NULL)",(day,now.isoformat()))
+        try:
+            send_wechat(day, '[打开技术日报](' + url + ')\n\n[历史归档](' + cfg['base_url'].rstrip('/') + '/index.html)', title='技术日报 ' + day)
+        except Exception:
+            with database(root) as conn:
+                conn.execute("UPDATE send_attempts SET state='uncertain',reason='发送请求未获得可靠确认，需核对通道记录' WHERE day=?",(day,))
+            raise RuntimeError('微信发送结果不明确，已保留待核对；不会自动重发') from None
         sent = now.isoformat()
     with database(root) as conn:
         conn.execute('UPDATE web_editions SET url=?,sent_at=? WHERE day=?', (url,sent,day))
         if sent:
+            conn.execute("INSERT OR REPLACE INTO send_attempts VALUES (?,'sent',?,NULL)",(day,sent))
             conn.execute("UPDATE deliveries SET status='sent',content='',sent_at=?,error=NULL WHERE day=?", (sent,day))
+            if data.get('pipeline_version')==2:
+                for card in data['cards']:
+                    conn.execute("UPDATE candidates SET state='recommended',reason='微信已接受推送' WHERE id=?",(card['id'],))
+                    conn.execute('INSERT OR REPLACE INTO items VALUES (?,?,?)',(card['id'],day,json.dumps(card,ensure_ascii=False)))
     status = {'delivery':'sent' if sent else 'published','day':day,'url':url}
     p = root / 'state/tech/last_run.json'
     if p.exists():

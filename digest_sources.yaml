@@ -1,0 +1,47 @@
+version: 2
+enabled: true
+window_months: 2
+topics:
+  language: [language model, llm, agent, reasoning, nlp, language, 语言, 推理, 智能体]
+  vision: [vision, image, diffusion, visual, video, segmentation, 视觉, 图像, 视频]
+  multimodal: [multimodal, multi-modal, vision-language, audio, speech, 多模态, 语音]
+  reinforcement: [reinforcement, reward, policy, robotics, robot, control, 强化学习, 奖励, 机器人]
+  systems: [inference, serving, training, gpu, retrieval, database, evaluation, benchmark, optimization, 系统, 训练, 检索, 评估]
+selection:
+  paper_limit: 10
+  news_limit: 8
+  review_paper_limit: 50
+  review_news_limit: 40
+  minimum_score: 65
+  maximum_papers_per_topic: 3
+  minimum_paper_topics: 4
+  section_targets: {peer_reviewed: 5, arxiv: 3, recommended: 2}
+  weights: {relevance: 0.30, evidence: 0.25, novelty: 0.20, recency: 0.15, reproducibility: 0.10}
+sources:
+  - {id: discovery:arxiv, name: arXiv, kind: paper, adapter: arxiv, cadence: daily, url: 'https://export.arxiv.org/api/query', categories: [cs.AI, cs.CL, cs.CV, cs.LG, cs.RO, stat.ML, cs.DC, cs.DB]}
+  - {id: discovery:semantic-scholar, name: Semantic Scholar, kind: paper, adapter: semantic, cadence: daily, url: 'https://api.semanticscholar.org/recommendations/v1/papers'}
+  - {id: discovery:hf, name: HF Daily Papers, kind: paper, adapter: hf, cadence: daily, url: 'https://huggingface.co/api/daily_papers'}
+  - {id: news:openai, name: OpenAI, kind: news, adapter: rss, cadence: daily, url: 'https://openai.com/news/rss.xml'}
+  - {id: news:anthropic, name: Anthropic, kind: news, adapter: page, cadence: daily, url: 'https://www.anthropic.com/research'}
+  - {id: news:deepmind, name: Google DeepMind, kind: news, adapter: rss, cadence: daily, url: 'https://deepmind.google/blog/rss.xml'}
+  - {id: news:google-research, name: Google Research, kind: news, adapter: rss, cadence: daily, url: 'https://research.google/blog/rss/'}
+  - {id: news:meta, name: Meta AI, kind: news, adapter: page, cadence: daily, url: 'https://ai.meta.com/blog/'}
+  - {id: news:microsoft, name: Microsoft Research, kind: news, adapter: rss, cadence: daily, url: 'https://www.microsoft.com/en-us/research/feed/'}
+  - {id: news:nvidia, name: NVIDIA, kind: news, adapter: rss, cadence: daily, url: 'https://developer.nvidia.com/blog/feed/'}
+  - {id: news:huggingface, name: Hugging Face, kind: news, adapter: rss, cadence: daily, url: 'https://huggingface.co/blog/feed.xml'}
+  - {id: news:qwen, name: Qwen, kind: news, adapter: page, cadence: daily, url: 'https://qwenlm.github.io/blog/'}
+  - {id: news:deepseek, name: DeepSeek, kind: news, adapter: github_org, cadence: daily, url: 'https://api.github.com/orgs/deepseek-ai/repos'}
+  - {id: news:hn, name: Hacker News, kind: news, adapter: hn, cadence: daily, url: 'https://hacker-news.firebaseio.com/v0/topstories.json'}
+  - {id: reddit:machinelearning, name: r/MachineLearning, kind: news, adapter: rss, cadence: daily, url: 'https://www.reddit.com/r/MachineLearning/new.rss'}
+  - {id: reddit:localllama, name: r/LocalLLaMA, kind: news, adapter: rss, cadence: daily, url: 'https://www.reddit.com/r/LocalLLaMA/new.rss'}
+  - {id: reddit:languagetechnology, name: r/LanguageTechnology, kind: news, adapter: rss, cadence: daily, url: 'https://www.reddit.com/r/LanguageTechnology/new.rss'}
+  - {id: reddit:computervision, name: r/ComputerVision, kind: news, adapter: rss, cadence: daily, url: 'https://www.reddit.com/r/ComputerVision/new.rss'}
+  - {id: reddit:reinforcementlearning, name: r/reinforcementlearning, kind: news, adapter: rss, cadence: daily, url: 'https://www.reddit.com/r/reinforcementlearning/new.rss'}
+  - {id: news:github-trending, name: GitHub Trending, kind: news, adapter: trending, cadence: daily, url: 'https://github.com/trending?since=daily'}
+  - {id: news:producthunt, name: Product Hunt, kind: news, adapter: rss, cadence: twice_weekly, url: 'https://www.producthunt.com/feed'}
+  - {id: youtube:lex, name: Lex Fridman, kind: news, adapter: youtube, cadence: rotating, rotation_group: 0, url: 'https://www.youtube.com/@lexfridman'}
+  - {id: youtube:dwarkesh, name: Dwarkesh Patel, kind: news, adapter: youtube, cadence: rotating, rotation_group: 1, url: 'https://www.youtube.com/@DwarkeshPatel'}
+  - {id: youtube:yannic, name: Yannic Kilcher, kind: news, adapter: youtube, cadence: rotating, rotation_group: 2, url: 'https://www.youtube.com/@YannicKilcher'}
+  - {id: youtube:twominute, name: Two Minute Papers, kind: news, adapter: youtube, cadence: rotating, rotation_group: 0, url: 'https://www.youtube.com/@TwoMinutePapers'}
+  - {id: youtube:latent-space, name: Latent Space, kind: news, adapter: youtube, cadence: rotating, rotation_group: 1, url: 'https://www.youtube.com/@LatentSpacePod'}
+  - {id: youtube:fireship, name: Fireship, kind: news, adapter: youtube, cadence: rotating, rotation_group: 2, url: 'https://www.youtube.com/@Fireship'}

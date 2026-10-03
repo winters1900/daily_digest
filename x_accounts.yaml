@@ -1,4 +1,4 @@
-version: 1
+version: 2
 reviewed_on: '2026-10-03'
 status: connected_to_browser_digest
 collection:
@@ -7,7 +7,7 @@ collection:
   allow_home_recommendations: false
   window_months: 2
   max_selected_per_author: 2
-  daily_target_items: 5
+  daily_target_items: 8
   exclude:
   - 广告
   - 课程促销
@@ -24,6 +24,10 @@ accounts:
   url: https://x.com/simonw
   verification_source: https://simonwillison.net/about/
   selection_note: 优先保留有复现步骤、代码或实测结果的帖子
+  core: true
+  identity_status: verified
+  identity_evidence_url: https://simonwillison.net/about/
+  legacy_cadence: daily
 - handle: HamelHusain
   name: Hamel Husain
   cadence: daily
@@ -31,6 +35,10 @@ accounts:
   url: https://x.com/HamelHusain
   verification_source: https://pages.hamel.dev/profile/links
   selection_note: 过滤课程促销，优先错误分析与评估案例
+  core: true
+  identity_status: verified
+  identity_evidence_url: https://pages.hamel.dev/profile/links
+  legacy_cadence: daily
 - handle: chipro
   name: Chip Huyen
   cadence: daily
@@ -38,6 +46,10 @@ accounts:
   url: https://x.com/chipro
   verification_source: https://huyenchip.com/
   selection_note: 优先完整文章和系统设计实践
+  core: true
+  identity_status: verified
+  identity_evidence_url: https://huyenchip.com/
+  legacy_cadence: daily
 - handle: eugeneyan
   name: Eugene Yan
   cadence: daily
@@ -45,6 +57,10 @@ accounts:
   url: https://x.com/eugeneyan
   verification_source: https://eugeneyan.com/
   selection_note: 优先带工程案例和实验依据的原创
+  core: true
+  identity_status: verified
+  identity_evidence_url: https://eugeneyan.com/
+  legacy_cadence: daily
 - handle: rasbt
   name: Sebastian Raschka
   cadence: daily
@@ -52,6 +68,10 @@ accounts:
   url: https://x.com/rasbt
   verification_source: https://github.com/rasbt
   selection_note: 优先架构解析、代码和实验，不把个人观点当作发布事实
+  core: true
+  identity_status: verified
+  identity_evidence_url: https://github.com/rasbt
+  legacy_cadence: daily
 - handle: karpathy
   name: Andrej Karpathy
   cadence: daily
@@ -59,31 +79,439 @@ accounts:
   url: https://x.com/karpathy
   verification_source: https://karpathy.ai/
   selection_note: 优先技术原创、项目和教程，允许没有当天更新
+  core: true
+  identity_status: verified
+  identity_evidence_url: https://karpathy.ai/
+  legacy_cadence: daily
 - handle: swyx
   name: Shawn Wang / swyx
-  cadence: weekly
+  cadence: daily
   focus: AI 工程生态、Agent、开发工具与技术访谈
   url: https://x.com/swyx
   verification_source: https://swyx.io/
   selection_note: 过滤活动宣传，技术访谈应追溯原文
+  core: true
+  identity_status: verified
+  identity_evidence_url: https://swyx.io/
+  legacy_cadence: weekly
 - handle: jeremyphoward
   name: Jeremy Howard
-  cadence: weekly
+  cadence: daily
   focus: 实用深度学习、开源工具与 AI 应用
   url: https://x.com/jeremyphoward
   verification_source: https://forums.fast.ai/t/introduce-yourself-here/95285
   selection_note: 只选技术内容，过滤非技术评论
+  core: true
+  identity_status: verified
+  identity_evidence_url: https://forums.fast.ai/t/introduce-yourself-here/95285
+  legacy_cadence: weekly
 - handle: antirez
   name: Salvatore Sanfilippo
-  cadence: weekly
+  cadence: daily
   focus: Redis、系统编程、性能与 AI 编程实践
   url: https://x.com/antirez
   verification_source: https://antirez.com/
   selection_note: 软件工程补充，优先代码和设计权衡
+  core: true
+  identity_status: verified
+  identity_evidence_url: https://antirez.com/
+  legacy_cadence: weekly
 - handle: lilianweng
   name: Lilian Weng
-  cadence: weekly
+  cadence: daily
   focus: Agent、强化学习、奖励设计与研究综述
   url: https://x.com/lilianweng
   verification_source: https://lilianweng.github.io/faq/
   selection_note: 深度阅读补充；旧文章只进入知识精读，不作为今日新动态
+  core: true
+  identity_status: verified
+  identity_evidence_url: https://lilianweng.github.io/faq/
+  legacy_cadence: weekly
+- handle: sama
+  name: Sam Altman
+  cadence: rotating
+  rotation_group: 0
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/sama
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/sama
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: ylecun
+  name: Yann LeCun
+  cadence: rotating
+  rotation_group: 1
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/ylecun
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/ylecun
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: demishassabis
+  name: Demis Hassabis
+  cadence: rotating
+  rotation_group: 2
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/demishassabis
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/demishassabis
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: drfeifei
+  name: Fei-Fei Li
+  cadence: rotating
+  rotation_group: 0
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/drfeifei
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/drfeifei
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: fchollet
+  name: François Chollet
+  cadence: rotating
+  rotation_group: 1
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/fchollet
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/fchollet
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: ID_AA_Carmack
+  name: John Carmack
+  cadence: rotating
+  rotation_group: 2
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/ID_AA_Carmack
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/ID_AA_Carmack
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: AmandaAskell
+  name: Amanda Askell
+  cadence: rotating
+  rotation_group: 0
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/AmandaAskell
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/AmandaAskell
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: alexalbert__
+  name: Alex Albert
+  cadence: rotating
+  rotation_group: 1
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/alexalbert__
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/alexalbert__
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: bcherny
+  name: Boris Cherny
+  cadence: rotating
+  rotation_group: 2
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/bcherny
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/bcherny
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: _catwu
+  name: Cat Wu
+  cadence: rotating
+  rotation_group: 0
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/_catwu
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/_catwu
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: goodside
+  name: Riley Goodside
+  cadence: rotating
+  rotation_group: 1
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/goodside
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/goodside
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: rauchg
+  name: Guillermo Rauch
+  cadence: rotating
+  rotation_group: 2
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/rauchg
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/rauchg
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: amasad
+  name: Amjad Masad
+  cadence: rotating
+  rotation_group: 0
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/amasad
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/amasad
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: levie
+  name: Aaron Levie
+  cadence: rotating
+  rotation_group: 1
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/levie
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/levie
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: garrytan
+  name: Garry Tan
+  cadence: rotating
+  rotation_group: 2
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/garrytan
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/garrytan
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: kevinweil
+  name: Kevin Weil
+  cadence: rotating
+  rotation_group: 0
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/kevinweil
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/kevinweil
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: steipete
+  name: Peter Steinberger
+  cadence: rotating
+  rotation_group: 1
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/steipete
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/steipete
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: peteryang
+  name: Peter Yang
+  cadence: rotating
+  rotation_group: 2
+  core: false
+  organization: false
+  identity_status: blocked
+  url: https://x.com/peteryang
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_note: 2026-10-04 正常浏览器显示账号已被冻结，未确认身份，不允许入选
+- handle: danshipper
+  name: Dan Shipper
+  cadence: rotating
+  rotation_group: 0
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/danshipper
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/danshipper
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: mattturck
+  name: Matt Turck
+  cadence: rotating
+  rotation_group: 1
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/mattturck
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/mattturck
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: thenanyu
+  name: Nan Yu
+  cadence: rotating
+  rotation_group: 2
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/thenanyu
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/thenanyu
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: nikunj
+  name: Nikunj Kothari
+  cadence: rotating
+  rotation_group: 0
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/nikunj
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/nikunj
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: joshwoodward
+  name: Josh Woodward
+  cadence: rotating
+  rotation_group: 1
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/joshwoodward
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/joshwoodward
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: ryolu_
+  name: Ryo Lu
+  cadence: rotating
+  rotation_group: 2
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/ryolu_
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/ryolu_
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: trq212
+  name: Thariq
+  cadence: rotating
+  rotation_group: 0
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/trq212
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/trq212
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: adityaag
+  name: Aditya Agarwal
+  cadence: rotating
+  rotation_group: 1
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/adityaag
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/adityaag
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: realmadhuguru
+  name: Madhu Guru
+  cadence: rotating
+  rotation_group: 2
+  core: false
+  organization: false
+  identity_status: verified
+  url: https://x.com/realmadhuguru
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/realmadhuguru
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: claudeai
+  name: Claude
+  cadence: rotating
+  rotation_group: 0
+  core: false
+  organization: true
+  identity_status: verified
+  url: https://x.com/claudeai
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/claudeai
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: ClaudeDevs
+  name: Claude Developers
+  cadence: rotating
+  rotation_group: 1
+  core: false
+  organization: true
+  identity_status: verified
+  url: https://x.com/ClaudeDevs
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/ClaudeDevs
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断
+- handle: GoogleLabs
+  name: Google Labs
+  cadence: rotating
+  rotation_group: 2
+  core: false
+  organization: true
+  identity_status: verified
+  url: https://x.com/GoogleLabs
+  verification_source: https://github.com/frankzch/ai-news-brief
+  selection_note: 首次核验身份与官方关联，优先技术证据，排除营销与无新增信息转帖
+  identity_evidence_url: https://x.com/GoogleLabs
+  identity_checked_at: '2026-10-04'
+  identity_note: 正常登录浏览器核验姓名、账号、公开履历及机构／个人站点关联；未据认证标识单独推断

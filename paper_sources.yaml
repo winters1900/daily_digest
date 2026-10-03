@@ -1,13 +1,12 @@
-version: 1
+version: 2
 reviewed_on: '2026-10-03'
 status: connected_to_browser_digest
 focus:
-- LLM 与推理
-- Agent 与工具调用
-- RAG 与检索
-- 评估与可靠性
-- 高效训练与推理
-- AI 系统与数据库
+- 语言与 Agent
+- 视觉
+- 多模态
+- 强化学习
+- AI 系统
 sources:
 - venues:
   - NeurIPS
@@ -15,18 +14,33 @@ sources:
   priority: core
   url: https://proceedings.neurips.cc/
   verification: 使用主会论文集或官方已录用名单；独立标记特殊轨道
+  id: paper:neurips
+  legacy_ids:
+  - paper:0
+  adapter: conference
+  cadence: daily
 - venues:
   - ICML
   type: conference
   priority: core
   url: https://proceedings.mlr.press/
   verification: 精确匹配 ICML 年度卷；PMLR 也收录其他会议和 Workshop，不能整站视为 ICML
+  id: paper:icml
+  legacy_ids:
+  - paper:1
+  adapter: conference
+  cadence: daily
 - venues:
   - ICLR
   type: conference
   priority: core
   url: https://iclr.cc/
   verification: 从对应年份官网进入 OpenReview，核验最终录用决定，提交页不等于录用
+  id: paper:iclr
+  legacy_ids:
+  - paper:2
+  adapter: conference
+  cadence: daily
 - venues:
   - ACL
   - EMNLP
@@ -34,42 +48,95 @@ sources:
   priority: core
   url: https://aclanthology.org/
   verification: 区分主会、Findings、Workshop、Demo 和其他轨道
+  id: paper:acl
+  legacy_ids:
+  - paper:3
+  adapter: conference
+  cadence: daily
 - venues:
   - MLSys
   type: conference
   priority: core
   url: https://proceedings.mlsys.org/
   verification: 核验官方论文集与年份
+  id: paper:mlsys
+  legacy_ids:
+  - paper:4
+  adapter: conference
+  cadence: daily
 - venues:
   - JMLR
   type: journal
   priority: core
   url: https://jmlr.org/
   verification: 核验文章页与正式发表信息
+  id: paper:jmlr
+  legacy_ids:
+  - paper:5
+  adapter: conference
+  cadence: daily
 - venues:
   - Nature Machine Intelligence
   type: journal
   priority: core
   url: https://www.nature.com/natmachintell/
   verification: 区分研究论文、综述、新闻和评论；全文不可访问时标记摘要阅读
+  id: paper:nature-mi
+  legacy_ids:
+  - paper:6
+  adapter: conference
+  cadence: daily
 - venues:
   - TMLR
   type: journal
   priority: supplement
   url: https://jmlr.org/tmlr/
   verification: 补充同行评审来源，核验正式接受状态，不笼统标记为顶刊
+  id: paper:tmlr
+  legacy_ids:
+  - paper:7
+  adapter: conference
+  cadence: daily
 - venues:
   - OSDI
   type: conference
   priority: systems
   url: https://www.usenix.org/conferences
   verification: 从官网进入对应届次，筛选与 AI 基础设施相关研究
+  id: paper:osdi
+  legacy_ids:
+  - paper:8
+  adapter: conference
+  cadence: daily
 - venues:
   - PVLDB
   type: journal
   priority: systems
   url: https://www.vldb.org/pvldb/
   verification: 核验卷期；仅选检索、向量数据库与 AI 数据系统相关研究
+  id: paper:pvldb
+  legacy_ids:
+  - paper:9
+  adapter: conference
+  cadence: daily
+- id: paper:cvpr
+  venues:
+  - CVPR
+  type: conference
+  priority: core
+  adapter: conference
+  cadence: daily
+  url: https://openaccess.thecvf.com/
+  verification: CVF 官方论文页与 CVPR 会议轨道
+- id: paper:eccv
+  venues:
+  - ECCV
+  type: conference
+  priority: core
+  adapter: conference
+  cadence: daily
+  url: https://www.ecva.net/papers.php
+  verification: ECVA 官方论文集及精确录用／发表日期
 selection:
   daily_target_items: 10
   discovery_candidate_target: 30
@@ -93,6 +160,14 @@ selection:
   - 用旧论文凑每日数量
   preprint_policy: 预印本可单列前沿观察，不占顶会顶刊精选配额；必须明确尚未核验录用，不凭作者自述标记正式接受
   track_policy: 主会、Findings、Workshop、Demo 分开标记；Oral/Spotlight/奖项需官方证据，且不作为唯一质量标准
+  section_targets:
+    peer_reviewed: 5
+    arxiv: 3
+    recommended: 2
+  review_limit: 50
+  minimum_score: 65
+  max_per_topic: 3
+  minimum_topics: 4
 metadata:
 - title
 - authors

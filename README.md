@@ -2,7 +2,7 @@
 
 技术知识与重要邮件日报，支持中文摘要、去重和微信推送。
 
-技术日报从固定 X 博主和官方会议、期刊来源筛选最近两个自然月的内容，每天北京时间10:30运行。邮件日报使用独立配置，每天10:00处理已启用的收件箱。登录凭据保存在系统钥匙串，运行状态和邮件正文不上传到仓库。
+技术日报从固定 X 作者、官方会刊、arXiv、Semantic Scholar、HF 和 AI 技术资讯来源筛选最近两个自然月的内容，目标10篇论文＋最多8条资讯，每天北京时间10:30运行。邮件日报使用独立配置，每天10:00处理已启用的收件箱。登录凭据保存在系统钥匙串，运行状态和邮件正文不上传到仓库。
 
 ## 安装
 
@@ -17,7 +17,12 @@ cp config.example.yaml config.yaml
 
 ```sh
 .venv/bin/python main.py --plan
-.venv/bin/python main.py --input state/tech/collection.json --push
+.venv/bin/python main.py --collect
+.venv/bin/python main.py --review-queue
+.venv/bin/python main.py --input state/tech/reviews.json
+.venv/bin/python main.py --compose --dry-run
+.venv/bin/python main.py --compose --push
+.venv/bin/python main.py --health
 .venv/bin/python main.py --status
 .venv/bin/python main.py --build-site
 .venv/bin/python main.py --publish YYYY-MM-DD
