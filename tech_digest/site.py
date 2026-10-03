@@ -1,5 +1,6 @@
 """日报 HTML 与同仓库归档；只发布公开技术内容。"""
 import hashlib
+from contextlib import contextmanager
 import fcntl
 import html
 import json
@@ -46,11 +47,11 @@ def shell(title, body, revision=''):
 
 def card_html(c, related):
     paper = c['kind'] == 'paper'
-    category = c.get('venue', '论文') if paper else c.get('content_type', '技术分享')
+    category = c.get('venue', '论文') if paper else ('机构发布' if c.get('organization') else c.get('content_type', '技术分享'))
     observation = category in {'作者观点', '待核验线索'} or c.get('review_status') == 'preprint'
     identity = category if paper else c.get('author', '')
     track = {'main':'主会','journal':'期刊','findings':'Findings','workshop':'Workshop','demo':'Demo'}.get(c.get('track'), '')
-    meta = (track + ' · ' if paper else '') + c.get('published_label', c.get('published_date', '日期待核验'))
+    meta = (track + ' · ' if paper and track else '') + c.get('published_label', c.get('published_date', '日期待核验'))
     if paper:
         meta += ' · ' + c.get('date_label', '首次公开日期' if c.get('review_status')=='preprint' else '发表／录用日期') + ' · 首次公开：' + c.get('first_public_date', '未知')
         if c.get('event_type') == 'publication_update':
@@ -148,12 +149,14 @@ def edition_v2_html(data):
 
 def init_editions(conn):
     conn.execute('CREATE TABLE IF NOT EXISTS web_editions (day TEXT PRIMARY KEY, data TEXT NOT NULL, url TEXT, sent_at TEXT)')
+    conn.execute('CREATE TABLE IF NOT EXISTS publication_runs (day TEXT PRIMARY KEY, stage TEXT NOT NULL, updated_at TEXT NOT NULL)')
     conn.execute('CREATE TABLE IF NOT EXISTS send_attempts (day TEXT PRIMARY KEY, state TEXT NOT NULL, attempted_at TEXT, reason TEXT)')
 
 
 def queue_edition(conn, day, data):
     init_editions(conn)
-    old = conn.execute('SELECT data FROM web_editions WHERE day=?', (day,)).fetchone()
+    old = conn.execute('SELECT data,sent_at FROM web_editions WHERE day=?', (day,)).fetchone()
+    if old and old[1]:return
     if old and data.get('status') == 'failed' and json.loads(old[0]).get('status') != 'failed': return
     conn.execute('INSERT INTO web_editions(day,data) VALUES (?,?) ON CONFLICT(day) DO UPDATE SET data=excluded.data',
                  (day, json.dumps(data, ensure_ascii=False)))
@@ -205,15 +208,42 @@ def git(root, args):
     return result.stdout.strip()
 
 
-def publish_pending(root, now, day=None, notify=True):
+@contextmanager
+def publication_lock(root):
     lock = root / 'state/tech/publish.lock'
     lock.parent.mkdir(parents=True, exist_ok=True)
-    with lock.open('w') as handle:
-        try:
-            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError:
-            raise RuntimeError('另一进程正在发布日报，请稍后重试') from None
-        return _publish_pending(root, now, day, notify)
+    with lock.open('a') as handle:
+        try:fcntl.flock(handle,fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:raise RuntimeError('另一进程正在生成或发布日报，请稍后重试') from None
+        try:yield
+        finally:fcntl.flock(handle,fcntl.LOCK_UN)
+
+
+def publication_phase(root,day,stage,now):
+    from .__main__ import database
+    with database(root) as conn:
+        init_editions(conn)
+        conn.execute('INSERT OR REPLACE INTO publication_runs VALUES (?,?,?)',(day,stage,now.isoformat()))
+
+
+def mark_recommended(conn,day,cards):
+    for card in cards:
+        uid=card['id']
+        alias=conn.execute('SELECT candidate_id FROM candidate_aliases WHERE alias=?',(uid,)).fetchone()
+        if alias:uid=alias[0]
+        conn.execute("UPDATE candidates SET state='recommended',reason='微信已接受推送' WHERE id=?",(uid,))
+        conn.execute('INSERT OR REPLACE INTO items VALUES (?,?,?)',(card['id'],day,json.dumps(card,ensure_ascii=False)))
+
+
+def publish_pending(root, now, day=None, notify=True):
+    from .__main__ import database
+    with publication_lock(root):
+        try:return _publish_pending(root, now, day, notify)
+        except Exception:
+            with database(root) as conn:
+                init_editions(conn)
+                conn.execute("UPDATE publication_runs SET stage='error',updated_at=? WHERE stage IN ('publishing','github_pushed') AND (? IS NULL OR day=?)",(now.isoformat(),day,day))
+            raise
 
 
 def _publish_pending(root, now, day=None, notify=True):
@@ -231,6 +261,7 @@ def _publish_pending(root, now, day=None, notify=True):
     day, raw, sent = row
     data=json.loads(raw)
     if data.get('status')=='failed' or not data.get('cards'):raise RuntimeError('采集失败或日报为空，不发布无效日报')
+    publication_phase(root,day,'publishing',now)
     paths = build_site(root)
     staged = git(root, ['diff','--cached','--name-only'])
     if staged: raise RuntimeError('暂存区有其他修改，请先处理后再发布日报')
@@ -238,6 +269,7 @@ def _publish_pending(root, now, day=None, notify=True):
     if git(root, ['diff','--cached','--name-only']):
         git(root, ['commit','-m','归档技术日报 ' + day])
     git(root, ['push','origin','main'])
+    publication_phase(root,day,'github_pushed',now)
     url = cfg['base_url'].rstrip('/') + '/' + day + '.html'
     revision = re.search(r'name="digest-revision" content="([a-f0-9]+)"', edition_html(json.loads(raw)))[1]
     deadline = time.monotonic() + cfg.get('wait_seconds',180)
@@ -249,6 +281,7 @@ def _publish_pending(root, now, day=None, notify=True):
         if ready: break
         if time.monotonic() >= deadline: raise RuntimeError('HTML已推送到GitHub，网页尚未发布；可用 --publish 重试，不发送无效链接')
         time.sleep(5)
+    publication_phase(root,day,'pages_ready',now)
     if notify and not sent:
         with database(root) as conn:
             attempt=conn.execute('SELECT state FROM send_attempts WHERE day=?',(day,)).fetchone()
@@ -268,9 +301,7 @@ def _publish_pending(root, now, day=None, notify=True):
             conn.execute("INSERT OR REPLACE INTO send_attempts VALUES (?,'sent',?,NULL)",(day,sent))
             conn.execute("UPDATE deliveries SET status='sent',content='',sent_at=?,error=NULL WHERE day=?", (sent,day))
             if data.get('pipeline_version')==2:
-                for card in data['cards']:
-                    conn.execute("UPDATE candidates SET state='recommended',reason='微信已接受推送' WHERE id=?",(card['id'],))
-                    conn.execute('INSERT OR REPLACE INTO items VALUES (?,?,?)',(card['id'],day,json.dumps(card,ensure_ascii=False)))
+                mark_recommended(conn,day,data['cards'])
     status = {'delivery':'sent' if sent else 'published','day':day,'url':url}
     p = root / 'state/tech/last_run.json'
     if p.exists():

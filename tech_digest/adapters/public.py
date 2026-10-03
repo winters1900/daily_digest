@@ -1,4 +1,3 @@
-import base64
 import concurrent.futures
 import html
 import json
@@ -100,39 +99,82 @@ _arxiv_lock=threading.Lock()
 
 
 def arxiv(source,http,now,progress):
+    """最新页发现 + 固定历史快照 + 可恢复增量分页；后页失败不丢前页。"""
     from ..__main__ import window_start
-    current_start=window_start(now,2).astimezone(timezone.utc).strftime('%Y%m%d%H%M');current_end=now.replace(hour=23,minute=59,second=0).astimezone(timezone.utc).strftime('%Y%m%d%H%M')
-    history=progress.get('backfill_cursor',{})
+    import copy
+    cutoff=window_start(now,2).astimezone(timezone.utc).strftime('%Y%m%d%H%M')
+    until=now.astimezone(timezone.utc).strftime('%Y%m%d%H%M')
+    cursor=copy.deepcopy(progress.get('cursor',{}))
+    history=copy.deepcopy(progress.get('backfill_cursor',{}))
     if history.get('sort_order')!='ascending':history={}
-    start=history.get('window_start',current_start);end=history.get('window_end',current_end)
-    complete=progress.get('backfill_complete',False) or history.get('finished',False)
-    offset=int(history.get('offset',0)) if not complete and history.get('sort_order')=='ascending' else 0
-    category='('+' OR '.join('cat:'+cat for cat in source['categories'])+')'
-    # 历史快照按首次提交升序分页，不因每天新增记录漂移；另读最新页作为重叠检查。
-    pages=[(current_start,current_end,0,'descending')]
-    if not complete:pages.append((start,end,offset,'ascending'))
-    result=[];total=history.get('total',0);last_count=0
-    for lo,hi,position,order in pages:
-        query=category+' AND submittedDate:['+lo+' TO '+hi+']'
+    history.setdefault('window_start',cutoff);history.setdefault('window_end',until)
+    history.setdefault('offset',0);history.setdefault('sort_order','ascending')
+    jobs=cursor.get('incremental_jobs',[])
+    through=cursor.get('scheduled_through') or min(history['window_end'],until)
+    if through<until:
+        overlap=(datetime.strptime(through,'%Y%m%d%H%M')-timedelta(days=2)).strftime('%Y%m%d%H%M')
+        start=max(cutoff,overlap)
+        if jobs and jobs[-1].get('offset',0)==0:
+            jobs[-1]['end']=until
+        else:jobs.append({'start':start,'end':until,'offset':0})
+    jobs=[job for job in jobs if job['end']>=cutoff]
+    for job in jobs:
+        if job['start']<cutoff:job.update(start=cutoff,offset=0)
+    cursor.update(incremental_jobs=jobs,scheduled_through=until)
+    cursor.pop('retry_not_before',None)
+    result=[];failure=None;pages=0;category='('+' OR '.join('cat:'+cat for cat in source['categories'])+')'
+
+    def fetch(start,end,offset,order):
+        nonlocal pages
+        query=category+' AND submittedDate:['+start+' TO '+end+']'
         with _arxiv_lock:
-            response=http.get(source['url'],params={'search_query':query,'start':position,'max_results':100,'sortBy':'submittedDate','sortOrder':order})
+            response=http.get(source['url'],params={'search_query':query,'start':offset,'max_results':100,'sortBy':'submittedDate','sortOrder':order})
             http.sleep(3)
         feed=feedparser.parse(response.content)
         if feed.bozo and not feed.entries:raise SourceError('arXiv Atom 无法解析')
-        if order=='ascending':
-            total=int(feed.feed.get('opensearch_totalresults',len(feed.entries)));last_count=len(feed.entries)
-        for e in feed.entries:
-            rawid=e.id.rsplit('/abs/',1)[-1]
-            result.append(entry(source,' '.join(e.title.split()),'https://arxiv.org/abs/'+rawid,
-                                arxiv_id=re.sub(r'v\d+$','',rawid),first_public_date=_date(e.published,now.tzinfo),updated_date=_date(e.updated,now.tzinfo),first_public_at=e.published,updated_at=e.updated,
-                                abstract=' '.join(e.summary.split()),authors=[a.name for a in e.get('authors',[])],review_status='preprint',
-                                date_evidence_url='https://arxiv.org/abs/'+rawid,categories=[t['term'] for t in e.get('tags',[])]))
-    done=complete or offset+last_count>=total
-    full=done and end==current_end
-    return result,{'coverage':'window_checked' if full else 'sample','backfill_complete':done,
-                   'backfill_cursor':{'offset':offset+last_count,'total':total,'window_start':start,'window_end':end,'finished':done,'sort_order':'ascending'},
-                   'cursor':{'latest_id':result[0]['arxiv_id'] if result else None},'note':'首次提交时间筛选；最新页重叠检查，历史快照升序补查 %d/%d，最新页不代表全量增量覆盖'%(offset+last_count,total)}
+        total=int(feed.feed.get('opensearch_totalresults',len(feed.entries)))
+        if not feed.entries and offset<total:raise SourceError('arXiv 分页为空但仍有未读取结果，保留游标等待重试')
+        found=[]
+        try:
+            for e in feed.entries:
+                rawid=e.id.rsplit('/abs/',1)[-1]
+                found.append(entry(source,' '.join(e.title.split()),'https://arxiv.org/abs/'+rawid,
+                    arxiv_id=re.sub(r'v\d+$','',rawid),first_public_date=_date(e.published,now.tzinfo),updated_date=_date(e.updated,now.tzinfo),
+                    first_public_at=e.published,updated_at=e.updated,abstract=' '.join(e.summary.split()),
+                    authors=[a.name for a in e.get('authors',[])],review_status='preprint',
+                    date_evidence_url='https://arxiv.org/abs/'+rawid,categories=[t['term'] for t in e.get('tags',[])]))
+        except (AttributeError,ValueError,KeyError,TypeError):raise SourceError('arXiv 条目无法解析，未推进该页游标') from None
+        result.extend(found);pages+=1
+        return len(feed.entries),total
 
+    try:
+        fetch(cutoff,until,0,'descending')
+        if history['window_end']<cutoff:
+            history.update(finished=True,completion_reason='历史快照已超出当前窗口')
+        for _ in range(source.get('backfill_pages',1)):
+            if history.get('finished'):break
+            count,total=fetch(history['window_start'],history['window_end'],history['offset'],'ascending')
+            history.update(offset=history['offset']+count,total=total)
+            history['finished']=history['offset']>=total
+        for _ in range(source.get('incremental_pages',4)):
+            if not jobs:break
+            job=jobs[0]
+            count,total=fetch(job['start'],job['end'],job['offset'],'ascending')
+            job.update(offset=job['offset']+count,total=total)
+            if job['offset']>=total:jobs.pop(0)
+    except SourceError as exc:
+        failure=exc
+        if exc.retry_at:cursor['retry_not_before']=exc.retry_at
+    except (ValueError,KeyError,TypeError,requests.RequestException):
+        failure=SourceError('arXiv 响应无法解析，保留已读取分页与游标')
+    unique={c['arxiv_id']:c for c in reversed(result)}
+    full=bool(history.get('finished')) and not jobs and not failure and not history.get('completion_reason')
+    cursor['latest_id']=result[0]['arxiv_id'] if result else cursor.get('latest_id')
+    meta={'coverage':'window_checked' if full else 'sample','backfill_complete':full,
+          'backfill_cursor':history,'cursor':cursor,
+          'note':'读取 %d 页；历史补查 %d/%s；待完成增量区间 %d；按首次提交时间筛选，未完成分页不代表全窗口覆盖'%(pages,history['offset'],history.get('total','未知'),len(jobs))}
+    if failure:meta.update(status=failure.status,note=meta['note']+'；'+str(failure))
+    return list(unique.values()),meta
 
 def hf(source,http,now,progress):
     result=[]
@@ -154,7 +196,8 @@ def semantic(source,http,now,progress,root):
         for uid,action in pipeline.feedback_actions(conn).items():
             row=conn.execute('SELECT data FROM candidates WHERE id=?',(uid,)).fetchone()
             if not row:continue
-            c=json.loads(row[0]);pid=c.get('semantic_scholar_id') or ('ARXIV:'+c['arxiv_id'] if c.get('arxiv_id') else 'DOI:'+c['doi'] if c.get('doi') else None)
+            c=json.loads(row[0]);aliases=pipeline.identity_aliases(c)
+            pid=next(('ARXIV:'+v[6:] for v in aliases if v.startswith('arxiv:')),None) or next(('DOI:'+v[4:] for v in aliases if v.startswith('doi:')),None) or c.get('semantic_scholar_id')
             if pid:
                 (negative if action=='disliked' else positive).append(pid)
     positive=sorted(set(positive)-set(negative))
@@ -254,7 +297,12 @@ ADAPTERS={'rss':rss,'arxiv':arxiv,'hf':hf,'hn':hn,'conference':page,'page':page,
 
 def collect(root,now,only=None):
     from ..__main__ import atomic_write
-    schedule=pipeline.plan(root,now);selected=[s for s in schedule['sources'] if not only or s['id'] in only]
+    schedule=pipeline.plan(root,now,all_sources=bool(only))
+    known={s['id'] for s in pipeline.registry(root)}
+    if only and set(only)-known:raise ValueError('未知来源 ID：'+', '.join(sorted(set(only)-known)))
+    selected=[s for s in schedule['sources'] if not only or s['id'] in only]
+    from ..__main__ import timestamp
+    selected=[s for s in selected if not s['progress'].get('cursor',{}).get('retry_not_before') or timestamp(s['progress']['cursor']['retry_not_before'])<=now]
     def work(source):
         base={'id':source['id'],'observed_at':now.isoformat(),'window_months':2,'evidence_urls':[source['url']]}
         if source['adapter']=='browser':return [],dict(base,status='needs_browser',coverage='unknown',note='使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子')
@@ -262,19 +310,35 @@ def collect(root,now,only=None):
             http=Http()
             if source['adapter']=='semantic':items,meta=semantic(source,http,now,source['progress'],root)
             else:items,meta=ADAPTERS[source['adapter']](source,http,now,source['progress'])
-            return items,dict(base,status='ok',**meta)
+            return items,dict(base,status=meta.pop('status','ok'),**meta)
         except SourceError as exc:
             return [],dict(base,status=exc.status,coverage='unknown',note=str(exc),cursor={'retry_not_before':exc.retry_at} if exc.retry_at else source['progress'].get('cursor',{}))
-        except (ValueError,KeyError,TypeError,requests.RequestException):
-            return [],dict(base,status='error',coverage='unknown',note='响应无法解析，需核查来源结构')
-    items=[];statuses=[]
+        except Exception:
+            return [],dict(base,status='error',coverage='unknown',note='来源适配器无法解析响应，其他来源继续处理')
+    items=[];statuses=[];ids=[];rejected=[]
+    path=root/'state/tech/public_collection.json'
+    # 每个来源完成即提交事务与恢复记录；一个慢来源／进程中断不丢其他源。
     with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
-        for found,status in pool.map(work,selected):items+=found;statuses.append(status)
-    payload={'pipeline_version':2,'observed_at':now.isoformat(),'sources':statuses,'items':items,'reviews':[]}
-    path=root/'state/tech/public_collection.json';atomic_write(path,json.dumps(payload,ensure_ascii=False,indent=2))
-    result=pipeline.ingest(root,payload,now)
-    browser=[s for s in statuses if s['status'] in {'needs_browser','blocked'} or s['coverage']=='index_only' or (s['coverage']=='sample' and s['id'] not in {'discovery:arxiv','discovery:hf','discovery:semantic-scholar'})]
-    tasks={'observed_at':now.isoformat(),'sources':browser,'instructions':'使用正常 Codex 浏览器读取；浏览器采集结果包含真实 evidence_urls、coverage 和检查进度。'}
+        futures={pool.submit(work,source):source for source in selected}
+        for future in concurrent.futures.as_completed(futures):
+            found,status=future.result()
+            checkpoint={'pipeline_version':2,'observed_at':now.isoformat(),'sources':[status],'items':found,'reviews':[]}
+            source_file=root/'state/tech/checkpoints'/ (status['id'].replace(':','_')+'.json')
+            atomic_write(source_file,json.dumps(checkpoint,ensure_ascii=False,indent=2))
+            saved=pipeline.ingest(root,checkpoint,now)
+            items+=found;statuses+=saved['source_results'];ids+=saved['candidate_ids'];rejected+=saved['rejected']
+            payload={'pipeline_version':2,'observed_at':now.isoformat(),'sources':statuses,'items':items,'reviews':[]}
+            atomic_write(path,json.dumps(payload,ensure_ascii=False,indent=2))
+    if not selected:
+        atomic_write(path,json.dumps({'observed_at':now.isoformat(),'sources':[],'items':[],'reviews':[]},ensure_ascii=False))
+    # 补查清单从持久状态重建，局部采集不能抹掉其他来源的未完成任务。
+    with pipeline.connection(root) as conn:
+        latest=[json.loads(r[0]) for r in conn.execute('SELECT details FROM source_runs WHERE id IN (SELECT max(id) FROM source_runs GROUP BY source_id)')]
+    browser=[s for s in latest if s['status'] in {'needs_browser','blocked'} or s['coverage']=='index_only' or (s['coverage']=='sample' and s['id'] not in {'discovery:arxiv','discovery:hf','discovery:semantic-scholar'})]
+    tasks={'observed_at':now.isoformat(),'sources':browser,'instructions':'使用正常 Codex 浏览器读取；身份检查用 phase: identity，内容检查用 phase: content，并保留真实证据、范围与补查游标。'}
     atomic_write(root/'state/tech/browser_tasks.json',json.dumps(tasks,ensure_ascii=False,indent=2))
-    result.update(collection_path=str(path),browser_tasks=str(root/'state/tech/browser_tasks.json'))
-    return result
+    outcome='failed' if statuses and not any(s['status']=='ok' for s in statuses) else 'partial' if any(s['status']!='ok' for s in statuses) else 'partial' if any((not only or s['id'] in only) and s not in selected for s in schedule['sources']) else 'ok'
+    return {'pipeline_version':2,'status':outcome,'ingested':len(ids),'candidate_ids':ids,'reviews':0,
+            'source_results':statuses,'rejected':rejected,'delivery':'not_sent',
+            'deferred_sources':[s['id'] for s in schedule['sources'] if (not only or s['id'] in only) and s not in selected],
+            'collection_path':str(path),'browser_tasks':str(root/'state/tech/browser_tasks.json')}

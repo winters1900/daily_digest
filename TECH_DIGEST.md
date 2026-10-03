@@ -11,10 +11,10 @@
 ## 每日完整流程
 
 1. 执行 `--health` 检查发送待核对、来源连续失败和历史补查进度，再执行 `--plan` 获取本次来源与时间窗口。
-2. 执行 `--collect`。原始内容进入 SQLite 待审核池，采集批次为 `state/tech/public_collection.json`，浏览器任务为 `state/tech/browser_tasks.json`。公开接口限流遵守 Retry-After，每次最多三次请求；长等待保存下次可重试时间，不阻塞全部来源。返回非零不代表合格候选全部丢失。
+2. 执行 `--collect`。原始内容进入 SQLite 待审核池，采集批次为 `state/tech/public_collection.json`，浏览器任务为 `state/tech/browser_tasks.json`。每个来源完成即入库并保存 state/tech/checkpoints/ 恢复批次，进程中断可继续未完成来源；一个来源异常不会撤销其他来源的成果。公开接口限流遵守 Retry-After，每次最多三次请求；长等待保存下次可重试时间，不阻塞全部来源。返回非零不代表合格候选全部丢失。
 3. 通过正常 Codex 浏览器处理浏览器任务与官方核验。X 只读配置内固定作者的个人页、原帖、作者站内搜索，不读首页推荐或社区。新账号 `identity_status: pending` 必须取得可信身份链接后才允许入选；机构账号单独标注。原 10 位每日检查，新增 30 位分三组轮换。首次检查全部账号不受轮换限制。Reddit 仅限配置的五个版块。
-4. 每个来源提交真实状态 `ok/blocked/error/needs_browser`、`note`、`evidence_urls`、`coverage: window_checked/sample/index_only/unknown` 和 `window_months: 2`。读取目录不是全文阅读，抽样不是全量覆盖。浏览器补查未完成时保存 `backfill_cursor`；只有实际检查完整窗口才能设置 `backfill_complete: true`。
-5. 执行 `--review-queue`，每次最多 50 篇论文、40 条资讯，经主题 BM25 初筛。打开原文核验，完成结构化评分，不把元数据、热度或关键词匹配视为审核完成。重复执行可继续处理剩余队列。
+4. 每个来源提交真实状态 `ok/blocked/error/needs_browser`、`note`、`evidence_urls`、`coverage: window_checked/sample/index_only/unknown` 和 `window_months: 2`。读取目录不是全文阅读，抽样不是全量覆盖。X 身份检查填 phase: identity，实际帖子检查填 phase: content；只核验身份不能跳过当天内容采集。浏览器补查未完成时保存 `backfill_cursor`；只有实际检查完整窗口才能设置 `backfill_complete: true`。
+5. 执行 `--review-queue`，每次最多 50 篇论文、40 条资讯，经主题 BM25 初筛；论文审核队列也分配主题配额，保留少量探索项，显示 pending_reason。打开原文核验，完成结构化评分，不把元数据、热度或关键词匹配视为审核完成。重复执行可继续处理剩余队列。
 6. 保存当前时间的审核 JSON，运行 `--input` 导入。逐条检查 `rejected`，缺证据留在待审核池，不修改日期强行入选。运行 `--compose --dry-run` 查看精选并逐条核验。
 7. 正式执行 `--compose --push`：生成日报、提交公开 HTML/CSS/字体到唯一仓库 winters1900/daily_digest，确认 Pages 版本上线后才通过邮件模块的 Server酱发微信阅读链接。正常完成保持安静，只有故障或需处理时通知。
 8. 发送后当日集合冻结，后补候选留次日。页面未就绪可重试 `--publish YYYY-MM-DD`。发送超时、进程中断或结果不明确记录为待核对，禁止盲目重发；核对 Server酱发送记录后用 `--resolve-delivery YYYY-MM-DD sent/retry --reason 核对依据` 明确结论。
@@ -57,9 +57,9 @@
 
 公开配置：`digest_sources.yaml`、`paper_sources.yaml`、`x_accounts.yaml`、`research_seeds.yaml`。arXiv 八类、Semantic Scholar、HF Daily Papers、AI 官方来源、HN、Reddit、六个 YouTube 频道、GitHub Trending、Product Hunt 已有适配器；会刊官方目录增加 CVPR、ECCV。适配器能发现候选不代表已完成原文核验。免费接口不可用时保留来源缺口；YouTube 无字幕时只保留线索。
 
-arXiv 历史快照按提交时间升序分页保存 offset，同时读取最新页重叠检查；其他 RSS 通常只提供有限最新条目，历史不足由浏览器任务按时间区间继续补查，不能声称已检查全窗口。各源独立保存检查时间、覆盖、游标、故障和每次发现／合并／核验／入选指标。
+arXiv 历史快照按提交时间升序分页保存 offset，同时读取最新页；后续新增内容独立建立带两天重叠的增量区间，分页结果超过100条时继续读取并保存未完成队列，直到覆盖完整区间。默认每次最多读取1个最新页、2个历史页和4个增量页，每个请求至少间隔三秒。后页失败保留前页候选、游标及限流时间，不丢弃全部结果。其他 RSS 通常只提供有限最新条目，历史不足由浏览器任务按时间区间继续补查，不能声称已检查全窗口。各源独立保存检查时间、覆盖、游标、故障和每次发现／合并／核验／入选指标。
 
-DOI、去版本 arXiv ID、OpenReview ID、Semantic Scholar ID 进行身份合并。标题相似只生成待核验建议，不能擅自合并。博主解读、新闻与论文关联同一主题，避免重复占额度。旧数字论文来源 ID 自动映射稳定 ID；旧采集批次缺少新证据或评分进入待审核，历史日报不重新排序。
+DOI、去版本 arXiv ID、OpenReview ID、Semantic Scholar ID 进行身份合并；桥接合并保留已审核卡片、反馈、旧候选 ID 与相关资讯的主题引用。标题相似只生成待核验建议，不能擅自合并。博主解读、新闻与论文关联同一主题，避免重复占额度；同一事件即使改用不同主题 ID 或换来源，也不会跨日重新推荐。旧数字论文来源 ID 自动映射稳定 ID；旧采集批次缺少新证据或评分进入待审核，历史日报不重新排序。
 
 种子按五领域各两篇，官方身份已核验，标为系统配置，可早于窗口；推荐结果仍必须满足窗口。参考项目仅借鉴设计，未复制其源码。喜欢／不感兴趣／已读支持聊天或 CLI：
 
@@ -89,6 +89,6 @@ DOI、去版本 arXiv ID、OpenReview ID、Semantic Scholar ID 进行身份合�
 .venv/bin/python -m unittest discover -s tests
 ```
 
-`--no-notify` 用于发布演练，不发送微信；`--dry-run` 不生成发送队列。退出0正常、2部分来源故障、1失败或输入错误。周六可将真实全文精读写入 `weekly_review` 合并当日页面，无法取得正文须跳过并说明。
+`--no-notify` 用于发布演练，不发送微信；`--dry-run` 不生成发送队列。退出0正常、2部分来源故障、1失败或输入错误。--collect --source 可主动复查已检查来源，但不能提前绕过 Retry-After；未知来源 ID 明确拒绝。--health 分别展示采集缺口、补查队列、发布阶段和微信发送状态；默认10:30启动后留120分钟宽限，超过12:30仍未确认当日发送会报告漏发风险，宽限可在 runtime 中配置。周六可将真实全文精读写入 `weekly_review` 合并当日页面，无法取得正文须跳过并说明。
 
 公开仓库只保存代码、公开配置、`docs/YYYY-MM-DD.html`、`index.html`、`latest.html` 和资源。候选、原始内容、反馈、邮件数据与凭据留在忽略的 state 或钥匙串；不得 `git add .`。网页为 https://winters1900.github.io/daily_digest/ 。旧四来源程序保留 `main.py --legacy`，邮件模块独立每天10:00，不受技术日报改动影响。

@@ -1,6 +1,7 @@
 version: 2
 enabled: true
 window_months: 2
+runtime: {delivery_grace_minutes: 120}
 topics:
   language: [language model, llm, agent, reasoning, nlp, language, 语言, 推理, 智能体]
   vision: [vision, image, diffusion, visual, video, segmentation, 视觉, 图像, 视频]
@@ -18,7 +19,7 @@ selection:
   section_targets: {peer_reviewed: 5, arxiv: 3, recommended: 2}
   weights: {relevance: 0.30, evidence: 0.25, novelty: 0.20, recency: 0.15, reproducibility: 0.10}
 sources:
-  - {id: discovery:arxiv, name: arXiv, kind: paper, adapter: arxiv, cadence: daily, url: 'https://export.arxiv.org/api/query', categories: [cs.AI, cs.CL, cs.CV, cs.LG, cs.RO, stat.ML, cs.DC, cs.DB]}
+  - {id: discovery:arxiv, name: arXiv, kind: paper, adapter: arxiv, cadence: daily, backfill_pages: 2, incremental_pages: 4, url: 'https://export.arxiv.org/api/query', categories: [cs.AI, cs.CL, cs.CV, cs.LG, cs.RO, stat.ML, cs.DC, cs.DB]}
   - {id: discovery:semantic-scholar, name: Semantic Scholar, kind: paper, adapter: semantic, cadence: daily, url: 'https://api.semanticscholar.org/recommendations/v1/papers'}
   - {id: discovery:hf, name: HF Daily Papers, kind: paper, adapter: hf, cadence: daily, url: 'https://huggingface.co/api/daily_papers'}
   - {id: news:openai, name: OpenAI, kind: news, adapter: rss, cadence: daily, url: 'https://openai.com/news/rss.xml'}

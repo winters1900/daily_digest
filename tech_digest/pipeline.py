@@ -27,7 +27,7 @@ def registry(root):
     from .__main__ import load_settings
     x, papers = load_settings(root)
     result = [dict(a, id='x:' + a['handle'].lower(), kind='x', adapter='browser') for a in x['accounts']]
-    result += [dict(s, kind='paper', adapter=s.get('adapter','conference'), cadence=s.get('cadence','daily')) for s in papers['sources']]
+    result += [dict(s, name=s.get('name') or ' / '.join(s['venues']), kind='paper', adapter=s.get('adapter','conference'), cadence=s.get('cadence','daily')) for s in papers['sources']]
     result += config(root)['sources']
     ids = [s['id'] for s in result]
     if len(ids) != len(set(ids)): raise ValueError('来源 ID 重复')
@@ -96,11 +96,14 @@ def due(root, now):
             state = previous.get(s['id'])
             retry=json.loads(state[2] or '{}').get('retry_not_before') if state else None
             if retry and timestamp(retry)>now:continue
-            if not state or state[1]>0 or now.date()>timestamp(state[0]).date(): result.append(s)
+            checked=state[0] if state else None
+            if s['adapter']=='browser' and state:
+                checked=json.loads(state[2] or '{}').get('content_checked_at')
+            if not checked or state[1]>0 or now.date()>timestamp(checked).date(): result.append(s)
     return result
 
 
-def plan(root, now):
+def plan(root, now, all_sources=False):
     from .__main__ import window_start
     cfg = config(root)
     with connection(root) as conn:
@@ -109,9 +112,9 @@ def plan(root, now):
                   for r in conn.execute('SELECT id,coverage,cursor,backfill_cursor,backfill_complete FROM source_state')}
     return {'pipeline_version':2,'date':now.date().isoformat(),'timezone':'Asia/Shanghai',
             'observed_at':now.isoformat(),'window':{'start':window_start(now,cfg['window_months']).date().isoformat(),'end':now.date().isoformat()},
-            'sources':[dict(s, progress=states.get(s['id'],{'backfill_complete':False})) for s in due(root,now)],
+            'sources':[dict(s, progress=states.get(s['id'],{'backfill_complete':False})) for s in (registry(root) if all_sources else due(root,now))],
             'selection':cfg['selection'],'topics':TOPIC_NAMES,
-            'input_schema':{'observed_at':'本次带时区的时间','sources':'id/status/note/evidence_urls/coverage/window_months；可附 cursor、backfill_cursor、backfill_complete',
+            'input_schema':{'observed_at':'本次带时区的时间','sources':'id/status/note/evidence_urls/coverage/window_months；可附 phase: identity/content、cursor、backfill_cursor、backfill_complete',
                             'items':'原始候选：kind/source_id/title/url/abstract/标识符/各事件日期；缺日期或评分也入库等待审核',
                             'reviews':'id/summary/why/limitations/action/reading_depth/topic/quality_scores/review_evidence/date_evidence_url；论文另填 review_status/venue/track/verification_url/first_public_date；资讯另填 news_section/event_id，视频另填 transcript_url/transcript_excerpt'},
             'commands':['--collect','--review-queue','--input state/tech/collection.json','--compose --dry-run','--compose --push','--health'],
@@ -161,14 +164,18 @@ def _merge_data(old, new):
     # 原始采集不能抹掉已审核的中文卡片，补充发现渠道和缺失元数据。
     for key,value in new.items():
         if key not in result or result[key] in (None,'',[]): result[key] = value
+    for key in ('updated_date','updated_at'):
+        if new.get(key) and (not old.get(key) or str(new[key])>str(old[key])):result[key]=new[key]
     result['discovery_sources'] = sorted(set(old.get('discovery_sources',[])+new.get('discovery_sources',[])))
     return result
 
 
-def store_candidate(conn, root, raw, now):
+def store_candidate(conn, root, raw, now, source_map=None, aliases=None):
     card = dict(raw)
-    sid = source_aliases(root).get(card.get('source_id'),card.get('source_id'))
-    source = {s['id']:s for s in registry(root)}.get(sid)
+    aliases=aliases if aliases is not None else source_aliases(root)
+    source_map=source_map if source_map is not None else {s['id']:s for s in registry(root)}
+    sid=aliases.get(card.get('source_id'),card.get('source_id'))
+    source=source_map.get(sid)
     if source is None or card.get('kind') != source['kind']: raise ValueError('来源或类型无效')
     card['source_id'] = sid
     if not isinstance(card.get('title'),str) or not card['title'].strip(): raise ValueError('候选缺少标题')
@@ -177,22 +184,30 @@ def store_candidate(conn, root, raw, now):
         p = urlparse(card['url'])
         if p.hostname not in {'x.com','twitter.com','www.x.com','www.twitter.com'} or not re.fullmatch('/'+re.escape(source['handle'])+r'/status/\d+',p.path,re.I):
             raise ValueError('X 原文与名单作者不匹配')
-    discovery=[source_aliases(root).get(value,value) for value in card.get('discovery_sources',[])]
-    known={s['id']:s for s in registry(root)}
+    discovery=[aliases.get(value,value) for value in card.get('discovery_sources',[])]
+    known=source_map
     if any(value not in known or (known[value]['kind']=='paper')!=(card['kind']=='paper') for value in discovery):raise ValueError('发现渠道无效')
     card['discovery_sources'] = sorted(set(discovery+[sid]))
     keys = identity_aliases(card)
     matches = {r[0] for key in keys for r in conn.execute('SELECT candidate_id FROM candidate_aliases WHERE alias=?',(key,))}
     old_rows = [conn.execute('SELECT id,data,state FROM candidates WHERE id=?',(uid,)).fetchone() for uid in matches]
-    old_rows = sorted([r for r in old_rows if r],key=lambda r:(r[2]!='recommended',r[0]))
+    old_rows = sorted([r for r in old_rows if r],key=lambda r:({'recommended':0,'reviewed':1,'pending':2}.get(r[2],3),r[0]))
     uid = old_rows[0][0] if old_rows else 'candidate:'+hashlib.sha256(keys[0].encode()).hexdigest()[:24]
     state = old_rows[0][2] if old_rows else 'pending'
-    for old_id,data,old_state in old_rows:
-        card = _merge_data(json.loads(data),card)
-        if old_id != uid:
-            conn.execute('UPDATE candidate_aliases SET candidate_id=? WHERE candidate_id=?',(uid,old_id))
-            conn.execute('UPDATE feedback SET candidate_id=? WHERE candidate_id=?',(uid,old_id))
-            conn.execute('DELETE FROM candidates WHERE id=?',(old_id,))
+    if old_rows:card=_merge_data(json.loads(old_rows[0][1]),card)
+    for old_id,data,old_state in old_rows[1:]:
+        card=_merge_data(card,json.loads(data))
+        conn.execute('UPDATE candidate_aliases SET candidate_id=? WHERE candidate_id=?',(uid,old_id))
+        conn.execute('INSERT OR REPLACE INTO candidate_aliases VALUES (?,?)',(old_id,uid))
+        conn.execute('UPDATE feedback SET candidate_id=? WHERE candidate_id=?',(uid,old_id))
+        conn.execute('DELETE FROM candidates WHERE id=?',(old_id,))
+        conn.execute('DELETE FROM merge_suggestions WHERE left_id=? OR right_id=?',(old_id,old_id))
+        for related_id,related_data in conn.execute('SELECT id,data FROM candidates').fetchall():
+            related=json.loads(related_data)
+            if related.get('theme_id')==old_id:
+                related['theme_id']=uid
+                conn.execute('UPDATE candidates SET data=? WHERE id=?',(json.dumps(related,ensure_ascii=False),related_id))
+        if card.get('theme_id')==old_id:card['theme_id']=uid
     card['id'] = uid
     if 'theme_id' not in card and card['kind']=='paper': card['theme_id']=uid
     conn.execute('INSERT INTO candidates VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at',
@@ -252,7 +267,10 @@ def validate_review(root, card, now):
     if card.get('topic') not in TOPIC_NAMES: raise ValueError('缺少有效主题')
     if not isinstance(card.get('review_evidence'),list) or not card['review_evidence']:raise ValueError('缺少已读证据链接')
     for url in card['review_evidence']+[card['date_evidence_url']]: https_url(url)
+    for field in ('code_url','verification_url','change_evidence_url','identity_evidence_url','transcript_url'):
+        if card.get(field):https_url(card[field])
     values = card.get('quality_scores',{})
+    if not isinstance(values,dict):raise ValueError('quality_scores 必须为对象')
     for key in config(root)['selection']['weights']:
         value = values.get(key)
         if isinstance(value,bool) or not isinstance(value,(float,int)) or not math.isfinite(value) or not 0<=value<=5:
@@ -297,12 +315,17 @@ def validate_review(root, card, now):
             https_url(card['transcript_url'])
         if source['adapter'] in {'trending','github_org'} and (not card.get('change_evidence_url') or not card.get('technical_change')):
             raise ValueError('开源项目缺少具体技术变化证据')
-        card['author']=card.get('author') or source['name']
+        card['author']=source['name'] if card['kind']=='x' else card.get('author') or source['name']
+        card['organization']=bool(source.get('organization'))
+        card['author_key']=source['id'] if card['kind']=='x' else card['author'].strip().casefold()
     return card
 
 
 def ingest(root, payload, now):
     from .__main__ import timestamp
+    if not isinstance(payload,dict) or not isinstance(payload.get('observed_at'),str):raise ValueError('采集批次必须包含 observed_at 字符串')
+    for field in ('items','reviews','sources'):
+        if not isinstance(payload.get(field,[]),list) or any(not isinstance(row,dict) for row in payload.get(field,[])):raise ValueError(field+' 必须为对象数组')
     observed = timestamp(payload['observed_at'])
     if observed>now+timedelta(minutes=5) or now-observed>timedelta(hours=6):raise ValueError('采集批次过期或来自未来')
     source_map = {s['id']:s for s in registry(root)}
@@ -313,8 +336,8 @@ def ingest(root, payload, now):
         conn.execute('BEGIN IMMEDIATE')
         for raw in payload.get('items',[]):
             try:
-                uid,merged = store_candidate(conn,root,raw,observed)
-                ids.append({'id':uid,'merged':merged})
+                uid,merged = store_candidate(conn,root,raw,observed,source_map=source_map,aliases=alias_map)
+                ids.append({'id':uid,'merged':merged,'source_id':alias_map.get(raw.get('source_id'),raw.get('source_id'))})
             except (ValueError,KeyError,TypeError) as exc:rejected.append({'title':raw.get('title',''),'reason':str(exc)})
         for raw in payload.get('reviews',[]):
             uid=raw.get('id')
@@ -341,12 +364,18 @@ def ingest(root, payload, now):
             old=conn.execute('SELECT cursor,backfill_cursor,backfill_complete,failures FROM source_state WHERE id=?',(sid,)).fetchone() or ('{}','{}',0,0)
             # 完成标记必须伴随整个窗口核验，不用访问成功覆盖已有进度。
             complete=bool(entry.get('backfill_complete')) and entry['coverage']=='window_checked' and entry.get('window_months')==2
+            cursor=dict(json.loads(old[0] or '{}'));cursor.update(entry.get('cursor') or {})
+            if entry['status']=='ok':cursor.pop('retry_not_before',None)
+            if source_map[sid]['adapter']=='browser' and entry['status']=='ok' and entry['coverage'] in {'sample','window_checked'} and entry.get('phase')!='identity':
+                cursor['content_checked_at']=observed.isoformat()
+            entry['cursor']=cursor
             conn.execute('INSERT OR REPLACE INTO source_state VALUES (?,?,?,?,?,?,?)',
-                         (sid,observed.isoformat(),entry['coverage'],json.dumps(entry.get('cursor',json.loads(old[0] or '{}'))),
+                         (sid,observed.isoformat(),entry['coverage'],json.dumps(cursor),
                           json.dumps(entry.get('backfill_cursor',json.loads(old[1] or '{}'))),int(complete or old[2]),0 if entry['status']=='ok' else old[3]+1))
             discovered=sum(alias_map.get(c.get('source_id'),c.get('source_id'))==sid for c in payload.get('items',[]))
             entry['discovered']=discovered
-            entry['merged']=sum(x['merged'] for x in ids for row in [conn.execute('SELECT data FROM candidates WHERE id=?',(x['id'],)).fetchone()] if row and sid in json.loads(row[0]).get('discovery_sources',[]))
+            entry['merged']=sum(x['merged'] for x in ids if x['source_id']==sid)
+            entry['accepted_candidates']=sum(x['source_id']==sid for x in ids)
             conn.execute('INSERT INTO source_runs(source_id,observed_at,status,details) VALUES (?,?,?,?)',(sid,observed.isoformat(),entry['status'],json.dumps(entry,ensure_ascii=False)))
             stats.append(entry)
         if payload.get('weekly_review'):
@@ -380,7 +409,7 @@ def review_queue(root, now):
     cutoff=window_start(now,2).date().isoformat()
     with connection(root) as conn:
         suggestions=[dict(left_id=r[0],right_id=r[1],similarity=r[2]) for r in conn.execute('SELECT * FROM merge_suggestions')]
-        rows=[json.loads(r[0]) for r in conn.execute("SELECT data FROM candidates WHERE state='pending'")]
+        rows=[dict(json.loads(r[0]),pending_reason=r[1]) for r in conn.execute("SELECT data,reason FROM candidates WHERE state='pending'")]
         eligible=[]
         for c in rows:
             known=c.get('published_date') or c.get('accepted_date') or (c.get('first_public_date') if c.get('review_status')=='preprint' else None)
@@ -395,7 +424,18 @@ def review_queue(root, now):
         scores=bm25(docs,query)
         # BM25 只初筛，保留少量低关键词匹配项，避免漏掉新方向。
         ordered=sorted(zip(group,scores),key=lambda pair:(-pair[1],pair[0]['id']))
-        reserve=min(3,len(ordered)) if len(ordered)>limit else 0
+        topic_scores={topic:bm25(docs,' '.join(terms)) for topic,terms in cfg['topics'].items()}
+        inferred={c['id']:max(topic_scores,key=lambda t:topic_scores[t][i]) for i,c in enumerate(group)}
+        for c,_ in ordered:c['prefilter_topic']=inferred[c['id']]
+        if kind=='paper' and len(ordered)>limit:
+            # 初筛也均衡分配，避免最终多样性规则被单一主题淹没的审核池架空。
+            quota=max(1,(limit-3)//len(TOPIC_NAMES));balanced=[];seen=set()
+            for topic in TOPIC_NAMES:
+                pool=[pair for pair in ordered if inferred[pair[0]['id']]==topic]
+                balanced+=pool[:quota];seen.update(c['id'] for c,_ in pool[:quota])
+            balanced+= [pair for pair in ordered if pair[0]['id'] not in seen]
+            ordered=balanced
+        reserve=min(3,limit,len(ordered)) if len(ordered)>limit else 0
         exploration=sorted(ordered[limit-reserve:],key=lambda pair:(pair[0].get('first_public_date') or pair[0].get('published_date') or '',pair[0]['id']),reverse=True)[:reserve]
         groups[kind]=[dict(c,prefilter_score=round(score,3)) for c,score in ordered[:limit-reserve]+exploration]
     return {'pipeline_version':2,'observed_at':now.isoformat(),'queue':groups,'merge_suggestions':suggestions,
@@ -420,6 +460,16 @@ def feedback_actions(conn):
     return result
 
 
+def dedup_keys(card):
+    return {prefix+str(card[field]) for field,prefix in [('theme_id','theme:'),('event_id','event:')] if card.get(field)} or {'item:'+card['id']}
+
+
+def heat(card):
+    try:value=float(card.get('engagement',0) or 0)
+    except (ValueError,TypeError):return 0
+    return value if math.isfinite(value) and value>=0 else 0
+
+
 def rank(root, conn, cards):
     cfg=config(root)['selection'];actions=feedback_actions(conn)
     weights=Counter()
@@ -428,38 +478,45 @@ def rank(root, conn, cards):
         if row:
             topic=json.loads(row[0]).get('topic')
             if topic:weights[topic]+=1 if action=='liked' else -1
+    historical=set()
+    for (raw,) in conn.execute("SELECT data FROM candidates WHERE state='recommended'"):
+        historical.update(dedup_keys(json.loads(raw)))
+    names={s['id']:s['name'] for s in registry(root)}
     result=[]
     for c in cards:
+        if dedup_keys(c)&historical:continue
         c=dict(c)
         if actions.get(c['id'])=='disliked':continue
         base=20*sum(c['quality_scores'][k]*w for k,w in cfg['weights'].items())
         if base<cfg['minimum_score']:continue
-        c['discovery_labels']=[s['name'] for s in registry(root) if s['id'] in c.get('discovery_sources',[])]
+        c['discovery_labels']=[names[sid] for sid in c.get('discovery_sources',[]) if sid in names]
         c['quality_score']=round(base,2)
         c['ranking_score']=round(base+max(-5,min(5,weights[c['topic']])),2)
         result.append(c)
-    return sorted(result,key=lambda c:(-c['ranking_score'],-float(c.get('engagement',0) or 0),c['id']))
+    return sorted(result,key=lambda c:(-c['ranking_score'],-heat(c),c['id']))
 
 
 def choose(root, cards):
-    cfg=config(root)['selection'];papers=[c for c in cards if c['kind']=='paper'];news=[c for c in cards if c['kind']!='paper']
+    cfg=config(root)['selection'];cards=sorted(cards,key=lambda c:(-c.get('ranking_score',c.get('quality_score',0)),-heat(c),c['id']));papers=[c for c in cards if c['kind']=='paper'];news=[c for c in cards if c['kind']!='paper']
     selected=[];ids=set();topics=Counter();themes=set();authors=Counter();ph=0
     def add(c,section=None):
         nonlocal ph
-        theme=c.get('theme_id') or c.get('event_id') or c['id']
-        if c['id'] in ids or theme in themes:return False
+        keys=dedup_keys(c)
+        if c['id'] in ids or keys&themes:return False
         if c['kind']=='paper':
+            if sum(s['kind']=='paper' for s in selected)>=cfg['paper_limit']:return False
             if topics[c['topic']]>=cfg['maximum_papers_per_topic']:return False
             topics[c['topic']]+=1
         else:
-            author=c.get('author') or c['source_id']
+            if sum(s['kind']!='paper' for s in selected)>=cfg['news_limit']:return False
+            author=c.get('author_key') or (c.get('author') or c['source_id']).strip().casefold()
             if authors[author]>=2:return False
             if c['source_id']=='news:producthunt' and ph>=1:return False
             authors[author]+=1
             if c['source_id']=='news:producthunt':ph+=1
         c=dict(c)
         if section:c['paper_section']=section
-        selected.append(c);ids.add(c['id']);themes.add(theme)
+        selected.append(c);ids.add(c['id']);themes.update(keys)
         return True
     def section(c):
         if c['review_status'] in {'accepted','published'}:return 'peer_reviewed'
@@ -472,7 +529,7 @@ def choose(root, cards):
     for name,target in cfg['section_targets'].items():
         pool=buckets[name]
         count=0
-        while count<target:
+        while count<target and sum(c['kind']=='paper' for c in selected)<cfg['paper_limit']:
             candidates=[c for c in pool if c['id'] not in ids and topics[c['topic']]<cfg['maximum_papers_per_topic']]
             if not candidates:break
             if len(topics)<cfg['minimum_paper_topics']:
@@ -490,6 +547,11 @@ def choose(root, cards):
 
 
 def compose(root, now, dry_run=False):
+    from .site import publication_lock
+    with publication_lock(root):return _compose(root,now,dry_run=dry_run)
+
+
+def _compose(root, now, dry_run=False):
     from .__main__ import atomic_write, window_start
     from .site import queue_edition
     day=now.date().isoformat();cfg=config(root);rejected=[]
@@ -536,7 +598,7 @@ def compose(root, now, dry_run=False):
         if not dry_run:
             selected_ids={c['id'] for c in selected};ranked_ids={c['id'] for c in ranked};actions=feedback_actions(conn)
             for c in cards:
-                reason='已精选，等待发布与确认发送' if c['id'] in selected_ids else '明确不感兴趣' if actions.get(c['id'])=='disliked' else '评分低于65分' if c['id'] not in ranked_ids else '去重、主题／作者上限或排名未入选'
+                reason='已精选，等待发布与确认发送' if c['id'] in selected_ids else '明确不感兴趣' if actions.get(c['id'])=='disliked' else '历史事件／主题已推荐或评分低于65分' if c['id'] not in ranked_ids else '去重、主题／作者上限或排名未入选'
                 conn.execute('UPDATE candidates SET reason=? WHERE id=?',(reason,c['id']))
             for item in rejected:conn.execute('UPDATE candidates SET reason=? WHERE id=?',(item['reason'],item['id']))
             for entry in fresh:
@@ -562,21 +624,33 @@ def resolve_delivery(root,day,decision,reason,now):
             conn.execute('UPDATE web_editions SET sent_at=? WHERE day=?',(now.isoformat(),day))
             conn.execute("UPDATE deliveries SET status='sent',content='',sent_at=? WHERE day=?",(now.isoformat(),day))
             data=json.loads(conn.execute('SELECT data FROM web_editions WHERE day=?',(day,)).fetchone()[0])
-            for c in data['cards']:
-                conn.execute("UPDATE candidates SET state='recommended' WHERE id=?",(c['id'],))
-                conn.execute('INSERT OR REPLACE INTO items VALUES (?,?,?)',(c['id'],day,json.dumps(c,ensure_ascii=False)))
+            from .site import mark_recommended
+            mark_recommended(conn,day,data['cards'])
     return {'day':day,'resolution':decision}
 
 
 def health(root, now):
+    cfg=config(root)
     with connection(root) as conn:
         counts=dict(conn.execute('SELECT state,count(*) FROM candidates GROUP BY state'))
-        recent=[dict(id=r[0],checked_at=r[1],coverage=r[2],backfill_complete=bool(r[3]),failures=r[4]) for r in conn.execute('SELECT id,checked_at,coverage,backfill_complete,failures FROM source_state')]
+        recent=[dict(id=r[0],checked_at=r[1],coverage=r[2],backfill_complete=bool(r[3]),failures=r[4],cursor=json.loads(r[5] or '{}'),backfill_cursor=json.loads(r[6] or '{}')) for r in conn.execute('SELECT id,checked_at,coverage,backfill_complete,failures,cursor,backfill_cursor FROM source_state')]
         pending=conn.execute('SELECT count(*) FROM web_editions WHERE sent_at IS NULL').fetchone()[0]
         last_edition=conn.execute('SELECT max(day) FROM web_editions').fetchone()[0]
+        last_sent=conn.execute('SELECT max(day) FROM web_editions WHERE sent_at IS NOT NULL').fetchone()[0]
         last_metrics=[json.loads(r[0]) for r in conn.execute('SELECT details FROM source_runs WHERE id IN (SELECT max(id) FROM source_runs GROUP BY source_id)')]
-        attempts=conn.execute("SELECT count(*) FROM sqlite_master WHERE name='send_attempts'").fetchone()[0]
-        uncertain=conn.execute("SELECT day,state FROM send_attempts WHERE state IN ('sending','uncertain')").fetchall() if attempts else []
-    return {'pipeline_version':2,'observed_at':now.isoformat(),'candidates':counts,'sources':recent,'uncollected_sources':sorted({s['id'] for s in registry(root)}-{s['id'] for s in recent}),
-            'latest_edition':last_edition,'source_metrics':last_metrics,'pending_editions':pending,'uncertain_deliveries':uncertain,'warnings':['连续失败来源：'+s['id'] for s in recent if s['failures']>=3],
+        uncertain=conn.execute("SELECT day,state FROM send_attempts WHERE state IN ('sending','uncertain')").fetchall()
+        publications=[dict(day=r[0],stage=r[1],updated_at=r[2]) for r in conn.execute('SELECT * FROM publication_runs ORDER BY day DESC LIMIT 7')]
+    uncollected=sorted({s['id'] for s in registry(root)}-{s['id'] for s in recent})
+    warnings=['连续失败来源：'+s['id'] for s in recent if s['failures']>=3]
+    warnings+=['微信发送结果待核对：'+day for day,_ in uncertain]
+    deadline=now.replace(hour=10,minute=30,second=0,microsecond=0)+timedelta(minutes=cfg.get('runtime',{}).get('delivery_grace_minutes',120))
+    overdue=now>=deadline and last_sent!=now.date().isoformat()
+    if overdue:warnings.append('当天日报尚未确认推送，已超过开始时间后的运行宽限；检查采集、Pages及微信阶段')
+    warnings+=['页面发布失败：'+p['day'] for p in publications if p['stage']=='error' and p['day']==now.date().isoformat()]
+    gaps=[{'id':s['id'],'status':s['status'],'note':s.get('note','')} for s in last_metrics if s['status']!='ok']
+    return {'pipeline_version':2,'status':'partial' if warnings or gaps or uncollected else 'ok','observed_at':now.isoformat(),
+            'candidates':counts,'sources':recent,'uncollected_sources':uncollected,'source_gaps':gaps,
+            'latest_edition':last_edition,'latest_sent_edition':last_sent,'delivery_overdue':overdue,
+            'source_metrics':last_metrics,'publication_stages':publications,'pending_editions':pending,
+            'uncertain_deliveries':uncertain,'warnings':warnings,
             'runtime':'本机Codex需运行、联网，X登录有效；10:30开始，不保证关机状态下采集'}
