@@ -211,6 +211,8 @@ def _publish_pending(root, now, day=None, notify=True):
         sent = now.isoformat()
     with database(root) as conn:
         conn.execute('UPDATE web_editions SET url=?,sent_at=? WHERE day=?', (url,sent,day))
+        if sent:
+            conn.execute("UPDATE deliveries SET status='sent',content='',sent_at=?,error=NULL WHERE day=?", (sent,day))
     status = {'delivery':'sent' if sent else 'published','day':day,'url':url}
     p = root / 'state/tech/last_run.json'
     if p.exists():

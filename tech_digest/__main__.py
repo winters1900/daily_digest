@@ -311,9 +311,12 @@ def ingest(root, payload, now, save_local=False):
     output = root / 'reports/tech' / (day + '.md')
     with database(root) as conn:
         conn.execute('BEGIN IMMEDIATE')
+        from .site import init_editions
+        init_editions(conn)
         previous = {r[0] for r in conn.execute('SELECT id FROM items WHERE day != ?', (day,))}
         today = {r[0]: json.loads(r[1]) for r in conn.execute('SELECT id, card FROM items WHERE day = ?', (day,))}
-        sent_today = conn.execute("SELECT 1 FROM deliveries WHERE day=? AND status='sent'", (day,)).fetchone() is not None
+        sent_today = (conn.execute("SELECT 1 FROM deliveries WHERE day=? AND status='sent'", (day,)).fetchone() is not None
+                      or conn.execute('SELECT 1 FROM web_editions WHERE day=? AND sent_at IS NOT NULL', (day,)).fetchone() is not None)
         for sid, raw in conn.execute('SELECT id,card FROM deferred').fetchall():
             try:
                 accepted.append(validate_card(json.loads(raw), source_map, root, now, observed))

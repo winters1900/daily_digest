@@ -1,4 +1,5 @@
 import copy
+from datetime import timedelta
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -88,6 +89,29 @@ class SiteTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError,'网页尚未发布'):
                 site.publish_pending(self.root,self.now)
             send.assert_not_called()
+
+    def test_html_sent_additions_wait_until_next_day(self):
+        from tech_digest.__main__ import ingest, database
+        data = self.web_payload()
+        with patch.object(site,'git',side_effect=self.fake_git), patch.object(site.requests,'get',return_value=SimpleNamespace(status_code=200,text=site.edition_html(data))), patch('mail_digest.delivery.send_wechat'):
+            site.publish_pending(self.root,self.now)
+        with database(self.root) as conn:
+            self.assertEqual(conn.execute('SELECT status,content FROM deliveries').fetchone(), ('sent',''))
+            # 兼容已有 HTML 已发出、旧队列仍为 pending 的历史状态。
+            conn.execute("UPDATE deliveries SET status='pending'")
+        extra = self.fixture.card(url='https://x.com/simonw/status/999999',title='次日推荐')
+        result = ingest(self.root,self.fixture.payload([extra]),self.now+timedelta(minutes=1))
+        self.assertEqual(result['selected_items'],1)
+        self.assertIn('已留待次日',result['rejected'][0])
+        with database(self.root) as conn:
+            self.assertEqual(conn.execute('SELECT count(*) FROM deferred').fetchone()[0],1)
+        tomorrow = self.now+timedelta(days=1)
+        payload = self.fixture.payload([])
+        payload['observed_at'] = tomorrow.isoformat()
+        result = ingest(self.root,payload,tomorrow)
+        self.assertEqual(result['selected_items'],1)
+        with database(self.root) as conn:
+            self.assertEqual(conn.execute('SELECT count(*) FROM deferred').fetchone()[0],0)
 
 
 if __name__ == '__main__':
