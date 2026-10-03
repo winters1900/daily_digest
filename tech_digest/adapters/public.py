@@ -103,6 +103,7 @@ def arxiv(source,http,now,progress):
     from ..__main__ import window_start
     current_start=window_start(now,2).astimezone(timezone.utc).strftime('%Y%m%d%H%M');current_end=now.replace(hour=23,minute=59,second=0).astimezone(timezone.utc).strftime('%Y%m%d%H%M')
     history=progress.get('backfill_cursor',{})
+    if history.get('sort_order')!='ascending':history={}
     start=history.get('window_start',current_start);end=history.get('window_end',current_end)
     complete=progress.get('backfill_complete',False) or history.get('finished',False)
     offset=int(history.get('offset',0)) if not complete and history.get('sort_order')=='ascending' else 0

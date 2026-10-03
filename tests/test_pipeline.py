@@ -185,6 +185,13 @@ class PipelineTests(unittest.TestCase):
         for label in ['已录用会议／正式期刊','arXiv 前沿','Semantic Scholar 推荐','未同行评审']:self.assertIn(label,rendered)
         self.assertNotIn('<script>',rendered);self.assertNotIn('href="javascript:',rendered)
 
+    def test_compose_push_targets_today_not_old_unsent_dry_run(self):
+        from tech_digest import __main__ as app
+        result={'day':'2026-10-04','status':'ok','selected_items':1}
+        with patch.object(app,'ROOT',self.root), patch.object(p,'compose',return_value=result), patch.object(site,'publish_pending',return_value={'delivery':'published'}) as publish, patch('builtins.print'):
+            self.assertEqual(app.main(['--compose','--push','--no-notify']),0)
+        self.assertEqual(publish.call_args.kwargs,{'day':'2026-10-04','notify':False})
+
     def test_video_without_readable_transcript_cannot_be_reviewed(self):
         uid=self.ingest([dict(kind='news',source_id='youtube:yannic',title='Video',url='https://www.youtube.com/watch?v=abc',published_date='2026-09-20')])['candidate_ids'][0]['id']
         review=self.review(uid,news_section='深度解读',event_id='video:abc',reading_depth='摘要')

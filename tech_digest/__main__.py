@@ -446,7 +446,8 @@ def main(argv=None):
         elif args.compose:
             result=pipeline.compose(ROOT,now,dry_run=args.dry_run)
             if args.push and not args.dry_run and result['status']!='failed' and result['selected_items'] and not result.get('frozen'):
-                result.update(push_pending(ROOT,now))
+                from .site import publish_pending
+                result.update(publish_pending(ROOT,now,day=result['day'],notify=not args.no_notify))
         elif args.health:
             result=pipeline.health(ROOT,now)
         elif args.feedback:
@@ -477,7 +478,11 @@ def main(argv=None):
                 if pipeline.enabled(ROOT): result.update(pipeline.compose(ROOT,now))
                 if result.get('status')=='failed' or result.get('selected_items')==0:
                     raise ValueError('采集失败或没有合格精选，不推送空日报')
-                result.update(push_pending(ROOT, now))
+                if pipeline.enabled(ROOT):
+                    if not result.get('frozen'):
+                        from .site import publish_pending
+                        result.update(publish_pending(ROOT,now,day=result['day'],notify=not args.no_notify))
+                else:result.update(push_pending(ROOT, now))
         print(json.dumps(result, ensure_ascii=False, indent=2))
         return {'partial': 2, 'failed': 1}.get(result.get('status'), 0)
     except (ValueError, KeyError, TypeError, OSError, RuntimeError, json.JSONDecodeError) as exc:
