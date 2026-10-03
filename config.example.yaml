@@ -1,0 +1,85 @@
+api_keys:
+  reddit_user_agent: "python:com.dailydigest:v1.0 (personal use)"
+  stackoverflow_key: ""  # 可选，填入后每日配额从 300 提升至 10000
+
+filters:
+  stackoverflow:
+    min_votes: 10
+    days_back: 7
+    max_per_tag: 3    # 每个 tag 最多抓取条数
+  github:
+    min_stars: 100
+    days_back: 7
+    max_per_topic: 4  # 每个 topic 最多抓取仓库数
+  reddit:
+    min_upvotes: 50
+    time_filter: "week"  # hour / day / week / month / year / all
+    max_per_subreddit: 3
+  substack:
+    days_back: 14       # Substack 更新频率低，放宽到 14 天
+    max_per_feed: 2
+
+output:
+  directory: "./reports"
+
+topics:
+  AI_ML:
+    label: "AI / 机器学习"
+    stackoverflow_tags:
+      - machine-learning
+      - llm
+      - pytorch
+      - langchain
+      - transformers
+    github_topics:
+      - llm
+      - machine-learning
+      - deep-learning
+    reddit_subreddits:
+      - MachineLearning
+      - LocalLLaMA
+      - artificial
+
+  Backend_SystemDesign:
+    label: "后端 / 系统设计"
+    stackoverflow_tags:
+      - system-design
+      - postgresql
+      - redis
+      - api-design
+      - distributed-systems
+    github_topics:
+      - distributed-systems
+      - microservices
+      - database
+    reddit_subreddits:
+      - programming
+      - ExperiencedDevs
+      - golang
+
+  DevOps_OpenSource:
+    label: "开源工具 / DevOps"
+    stackoverflow_tags:
+      - docker
+      - kubernetes
+      - terraform
+      - github-actions
+      - linux
+    github_topics:
+      - devops
+      - kubernetes
+      - terraform
+    reddit_subreddits:
+      - devops
+      - kubernetes
+      - docker
+    substack_feeds:
+      - url: https://newsletter.pragmaticengineer.com/feed
+        name: The Pragmatic Engineer
+
+# 不归属特定主题，单独成章节
+substack_feeds_global:
+  - url: https://www.exponentialview.co/feed
+    name: Exponential View
+  - url: https://lethain.com/feed
+    name: Irrational Exuberance

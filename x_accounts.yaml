@@ -1,0 +1,89 @@
+version: 1
+reviewed_on: '2026-10-03'
+status: connected_to_browser_digest
+collection:
+  mode: logged_in_browser
+  allow_community_feed: false
+  allow_home_recommendations: false
+  window_months: 2
+  max_selected_per_author: 2
+  daily_target_items: 5
+  exclude:
+  - 广告
+  - 课程促销
+  - 闲聊
+  - 求关注
+  - 无新增信息的转帖
+  - 过期置顶帖
+  note: daily/weekly 是建议采集频率，不是对作者发帖频率的保证；正文需继续筛选。
+accounts:
+- handle: simonw
+  name: Simon Willison
+  cadence: daily
+  focus: LLM 实测、AI 编程、工具调用与提示注入
+  url: https://x.com/simonw
+  verification_source: https://simonwillison.net/about/
+  selection_note: 优先保留有复现步骤、代码或实测结果的帖子
+- handle: HamelHusain
+  name: Hamel Husain
+  cadence: daily
+  focus: LLM 评估、错误分析与 AI 产品可靠性
+  url: https://x.com/HamelHusain
+  verification_source: https://pages.hamel.dev/profile/links
+  selection_note: 过滤课程促销，优先错误分析与评估案例
+- handle: chipro
+  name: Chip Huyen
+  cadence: daily
+  focus: AI 工程、生产系统、数据与评估
+  url: https://x.com/chipro
+  verification_source: https://huyenchip.com/
+  selection_note: 优先完整文章和系统设计实践
+- handle: eugeneyan
+  name: Eugene Yan
+  cadence: daily
+  focus: 应用 LLM、检索、推荐与评估
+  url: https://x.com/eugeneyan
+  verification_source: https://eugeneyan.com/
+  selection_note: 优先带工程案例和实验依据的原创
+- handle: rasbt
+  name: Sebastian Raschka
+  cadence: daily
+  focus: LLM 架构、训练、推理与论文解读
+  url: https://x.com/rasbt
+  verification_source: https://github.com/rasbt
+  selection_note: 优先架构解析、代码和实验，不把个人观点当作发布事实
+- handle: karpathy
+  name: Andrej Karpathy
+  cadence: daily
+  focus: 模型原理、AI 编程与教育项目
+  url: https://x.com/karpathy
+  verification_source: https://karpathy.ai/
+  selection_note: 优先技术原创、项目和教程，允许没有当天更新
+- handle: swyx
+  name: Shawn Wang / swyx
+  cadence: weekly
+  focus: AI 工程生态、Agent、开发工具与技术访谈
+  url: https://x.com/swyx
+  verification_source: https://swyx.io/
+  selection_note: 过滤活动宣传，技术访谈应追溯原文
+- handle: jeremyphoward
+  name: Jeremy Howard
+  cadence: weekly
+  focus: 实用深度学习、开源工具与 AI 应用
+  url: https://x.com/jeremyphoward
+  verification_source: https://forums.fast.ai/t/introduce-yourself-here/95285
+  selection_note: 只选技术内容，过滤非技术评论
+- handle: antirez
+  name: Salvatore Sanfilippo
+  cadence: weekly
+  focus: Redis、系统编程、性能与 AI 编程实践
+  url: https://x.com/antirez
+  verification_source: https://antirez.com/
+  selection_note: 软件工程补充，优先代码和设计权衡
+- handle: lilianweng
+  name: Lilian Weng
+  cadence: weekly
+  focus: Agent、强化学习、奖励设计与研究综述
+  url: https://x.com/lilianweng
+  verification_source: https://lilianweng.github.io/faq/
+  selection_note: 深度阅读补充；旧文章只进入知识精读，不作为今日新动态

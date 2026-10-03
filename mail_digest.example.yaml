@@ -1,0 +1,56 @@
+accounts:
+  nju:
+    address: your-id@smail.nju.edu.cn
+    host: imap.exmail.qq.com
+    port: 993
+  qq:
+    address: your-id@qq.com
+    host: imap.qq.com
+    port: 993
+  gmail:
+    address: your-id@gmail.com
+    enabled: false
+rules:
+  求职:
+    senders: []
+    keywords:
+    - 面试
+    - 笔试
+    - offer
+    - 录用
+    - 招聘
+    - 实习
+    - 校招
+    - 网申
+    - application
+    - interview
+  学业:
+    senders: []
+    keywords:
+    - 课程
+    - 作业
+    - 考试
+    - 选课
+    - 成绩
+    - 导师
+    - 论文
+    - 答辩
+    - 奖学金
+    - 学术
+    - deadline
+  其他待办:
+    senders: []
+    keywords:
+    - 截止
+    - 尽快
+    - 请回复
+    - 请确认
+    - 需要处理
+    - 到期
+ai:
+  model: deepseek-flash
+  excerpt_chars: 1200
+  max_messages_per_run: 100
+output:
+  directory: reports/mail
+  state_db: state/mail_digest.sqlite3

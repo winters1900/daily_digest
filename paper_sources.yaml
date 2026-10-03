@@ -1,0 +1,123 @@
+version: 1
+reviewed_on: '2026-10-03'
+status: connected_to_browser_digest
+focus:
+- LLM 与推理
+- Agent 与工具调用
+- RAG 与检索
+- 评估与可靠性
+- 高效训练与推理
+- AI 系统与数据库
+sources:
+- venues:
+  - NeurIPS
+  type: conference
+  priority: core
+  url: https://proceedings.neurips.cc/
+  verification: 使用主会论文集或官方已录用名单；独立标记特殊轨道
+- venues:
+  - ICML
+  type: conference
+  priority: core
+  url: https://proceedings.mlr.press/
+  verification: 精确匹配 ICML 年度卷；PMLR 也收录其他会议和 Workshop，不能整站视为 ICML
+- venues:
+  - ICLR
+  type: conference
+  priority: core
+  url: https://iclr.cc/
+  verification: 从对应年份官网进入 OpenReview，核验最终录用决定，提交页不等于录用
+- venues:
+  - ACL
+  - EMNLP
+  type: conference
+  priority: core
+  url: https://aclanthology.org/
+  verification: 区分主会、Findings、Workshop、Demo 和其他轨道
+- venues:
+  - MLSys
+  type: conference
+  priority: core
+  url: https://proceedings.mlsys.org/
+  verification: 核验官方论文集与年份
+- venues:
+  - JMLR
+  type: journal
+  priority: core
+  url: https://jmlr.org/
+  verification: 核验文章页与正式发表信息
+- venues:
+  - Nature Machine Intelligence
+  type: journal
+  priority: core
+  url: https://www.nature.com/natmachintell/
+  verification: 区分研究论文、综述、新闻和评论；全文不可访问时标记摘要阅读
+- venues:
+  - TMLR
+  type: journal
+  priority: supplement
+  url: https://jmlr.org/tmlr/
+  verification: 补充同行评审来源，核验正式接受状态，不笼统标记为顶刊
+- venues:
+  - OSDI
+  type: conference
+  priority: systems
+  url: https://www.usenix.org/conferences
+  verification: 从官网进入对应届次，筛选与 AI 基础设施相关研究
+- venues:
+  - PVLDB
+  type: journal
+  priority: systems
+  url: https://www.vldb.org/pvldb/
+  verification: 核验卷期；仅选检索、向量数据库与 AI 数据系统相关研究
+selection:
+  daily_target_range:
+  - 1
+  - 3
+  weekly_deep_reads: 1
+  window_months: 2
+  allow_empty: true
+  venue_ranking_note: priority 表示对当前主题的采集优先级，不代表统一学术等级或官方排名
+  required:
+  - 主题相关
+  - 原文可追溯
+  - 研究贡献与证据可解释
+  prefer:
+  - 明确的实验设置和比较基线
+  - 消融实验与局限性
+  - 代码、数据或复现说明
+  - 官方奖项或 Oral/Spotlight 信息
+  avoid:
+  - 仅凭引用数或社交热度排序
+  - 仅凭作者机构决定质量
+  - 把近期录用的旧预印本当成新研究
+  - 用旧论文凑每日数量
+  preprint_policy: 预印本可单列前沿观察，不占顶会顶刊精选配额；必须明确尚未核验录用，不凭作者自述标记正式接受
+  track_policy: 主会、Findings、Workshop、Demo 分开标记；Oral/Spotlight/奖项需官方证据，且不作为唯一质量标准
+metadata:
+- title
+- authors
+- venue
+- year
+- track
+- review_status
+- first_public_date
+- accepted_date
+- published_date
+- discovered_at
+- canonical_url
+- doi_or_arxiv_id
+- code_url
+- reading_depth
+date_policy: 首次公开、录用、正式发表、采集时间分别保存；没有精确日期时保留未知，不从会议年份或采集时间推断。近期录用旧论文标记为录用动态。
+deduplication: 先按 DOI、arXiv ID 或 OpenReview ID 合并，再核对标题与作者；与 X 博主解读关联为同一主题，保留原论文和解读链接。
+card_fields:
+- 解决什么问题
+- 核心方法与新贡献
+- 主要结果及实验条件
+- 局限与适用范围
+- 工程应用或复现动作
+- 会刊及录用状态
+- 时间与原文链接
+- 阅读深度：摘要/正文/复现
+access_policy: 优先官方开放论文与作者公开版本；不额外购买数据库或摘要 API。只有摘要可读时不得声称全文精读。
