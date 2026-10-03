@@ -19,7 +19,9 @@ cp config.example.yaml config.yaml
 .venv/bin/python main.py --plan
 .venv/bin/python main.py --input state/tech/collection.json --push
 .venv/bin/python main.py --status
+.venv/bin/python main.py --build-site
+.venv/bin/python main.py --publish YYYY-MM-DD
 .venv/bin/python -m unittest discover -s tests
 ```
 
-Python负责校验、去重与投递；X采集由已登录的Codex浏览器执行，不能用GitHub Actions直接复用本机的登录会话。每日HTML简报将保存在本仓库的 `docs/` 目录，密钥、邮箱数据、数据库及本地缓存不入库。
+Python负责校验、去重与投递；X采集由已登录的Codex浏览器执行，不能用GitHub Actions直接复用本机的登录会话。每日HTML简报保存在本仓库的 `docs/` 目录，由GitHub Pages托管：[阅读首页](https://winters1900.github.io/daily_digest/)。微信推送只包含标题和页面链接。密钥、邮箱数据、数据库及本地缓存不入库。

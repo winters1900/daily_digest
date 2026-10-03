@@ -1,6 +1,6 @@
 version: 1
 github_pages:
-  enabled: false
+  enabled: true
   repository: winters1900/daily_digest
   directory: docs
   base_url: https://winters1900.github.io/daily_digest

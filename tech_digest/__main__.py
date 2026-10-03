@@ -337,6 +337,11 @@ def ingest(root, payload, now, save_local=False):
             today[card['id']] = card
             conn.execute('DELETE FROM deferred WHERE id=?', (card['id'],))
         cards = list(today.values())
+        from .site import queue_edition
+        queue_edition(conn, day, {'day': day, 'cards': cards, 'sources': list(statuses.values()),
+                                'status': result, 'rejected': rejected,
+                                'windows': {kind: source_window(root, kind, now) for kind in ('x', 'paper')},
+                                'weekly_review': payload.get('weekly_review', '')})
         # 失败重试不覆盖同一天已经生成的有效日报。
         report_path = output if result != 'failed' else root / 'reports/tech' / (day + '-failure.md')
         content = render(day, cards, list(statuses.values()), result, rejected,
@@ -367,6 +372,9 @@ def ingest(root, payload, now, save_local=False):
 
 
 def push_pending(root, now):
+    from .site import enabled, publish_pending
+    if enabled(root):
+        return publish_pending(root, now)
     with database(root) as conn:
         conn.execute('BEGIN IMMEDIATE')
         row = conn.execute("SELECT day,content FROM deliveries WHERE status='pending' ORDER BY day LIMIT 1").fetchone()
@@ -397,11 +405,19 @@ def main(argv=None):
     parser.add_argument('--status', action='store_true', help='查看最近运行状态')
     parser.add_argument('--push', action='store_true', help='通过邮件模块同一微信通道推送，失败可独立重试')
     parser.add_argument('--save-local', action='store_true', help='可选：另存本地Markdown，默认只推送')
+    parser.add_argument('--publish', metavar='YYYY-MM-DD', help='发布已归档日报HTML并推送链接')
+    parser.add_argument('--build-site', action='store_true', help='生成本仓库docs目录的HTML日报')
     args = parser.parse_args(argv)
     now = datetime.now(TZ)
     try:
         if args.plan:
             result = plan(ROOT, now)
+        elif args.publish:
+            from .site import publish_pending
+            result = publish_pending(ROOT, now, day=args.publish)
+        elif args.build_site:
+            from .site import build_site
+            result = {'files': build_site(ROOT)}
         elif args.status:
             path = ROOT / 'state/tech/last_run.json'
             if not path.exists():
