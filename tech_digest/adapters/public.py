@@ -1,7 +1,6 @@
 import concurrent.futures
 import html
 import json
-import os
 import re
 import threading
 import time
@@ -203,7 +202,9 @@ def semantic(source,http,now,progress,root):
     positive=sorted(set(positive)-set(negative))
     if not positive:raise SourceError('没有已核验的种子论文','blocked')
     headers={}
-    key=os.environ.get('DAILY_DIGEST_S2_API_KEY')
+    from ..credentials import semantic_key
+    try:key=semantic_key()
+    except RuntimeError:raise SourceError('系统钥匙串不可用，无法读取推荐接口凭据','blocked') from None
     if key:headers['x-api-key']=key
     response=http.request('POST',source['url'],params={'limit':100,'fields':'paperId,title,abstract,authors,url,externalIds,publicationDate,venue,year'},
                           json={'positivePaperIds':positive,'negativePaperIds':sorted(set(negative))},headers=headers)
