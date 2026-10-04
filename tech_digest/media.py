@@ -39,7 +39,9 @@ def validate_descriptor(f):
                 raise ValueError('重绘数据无效')
             import math
             if not math.isfinite(row['value']):raise ValueError('重绘数值无效')
-            if not any(str(row['value']) in e['excerpt'] for e in f['data_evidence']):
+            from .quality import numeric_tokens
+            value=next(iter(numeric_tokens(str(row['value']))))[0]
+            if not any(value in {n for n,_ in numeric_tokens(e['excerpt'])} for e in f['data_evidence']):
                 raise ValueError('重绘数值缺少对应原文证据')
     return f
 

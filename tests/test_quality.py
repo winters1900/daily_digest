@@ -41,6 +41,19 @@ class QualityTests(unittest.TestCase):
         for card in [dict(self.card,reading_depth='摘要',focus=False),dict(self.card,reading_depth='摘要',quality_scores=dict(self.card['quality_scores'],evidence=3))]:
             self.assertTrue(quality.check([card])['errors'])
 
+    def test_numeric_evidence_rejects_substrings_and_changed_sign(self):
+        for excerpt in ['peak 127.54 GB','peak 27.549 GB','peak -27.54 GB']:
+            card=copy.deepcopy(self.card);card['claims'][0]['excerpt']=excerpt
+            self.assertEqual(quality.check([card])['status'],'failed')
+        card=copy.deepcopy(self.card);card['claims'][0]['excerpt']='peak 27.540 GB'
+        self.assertEqual(quality.check([card])['status'],'ok')
+        self.assertEqual(quality.numeric_tokens('1,000 1e3'),quality.numeric_tokens('1000'))
+        self.assertNotEqual(quality.numeric_tokens('27.54%'),quality.numeric_tokens('27.54'))
+
+    def test_redraw_rejects_numeric_substring_evidence(self):
+        figure=copy.deepcopy(self.figure());figure['data_evidence'][0]['excerpt']='peak 127.54 GB'
+        with self.assertRaises(ValueError):media.validate_descriptor(figure)
+
     def test_reproducibility_and_code_need_verification(self):
         for card in [dict(self.card,code_url='https://github.com/a/b'),dict(self.card,quality_scores=dict(self.card['quality_scores'],reproducibility=4))]:
             self.assertTrue(quality.check([card])['errors'])

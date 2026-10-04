@@ -8,6 +8,18 @@ SUBTOPICS = {'agents','reasoning','language_learning','video','image_generation'
 SCORES = ('relevance','evidence','novelty','recency','reproducibility')
 
 
+def numeric_tokens(text):
+    """按完整数值匹配证据，避免27.54匹配到127.54或27.549。"""
+    from decimal import Decimal
+    tokens=set()
+    pattern=r'[-+]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?(?:[eE][-+]?\d+)?(?:%|×)?'
+    for match in re.finditer(pattern,text):
+        raw=match.group();suffix=raw[-1] if raw[-1] in '%×' else ''
+        number=raw[:-1] if suffix else raw
+        tokens.add((Decimal(number.replace(',','')),suffix))
+    return tokens
+
+
 def required(obj, key):
     if not isinstance(obj.get(key), str) or not obj[key].strip():
         raise ValueError('新版审核缺少 ' + key)
@@ -27,9 +39,9 @@ def validate(card):
     for claim in evidence:
         for key in ('text','locator','excerpt','url'):required(claim,key)
         https_url(claim['url'])
-    numbers=re.findall(r'\d+(?:[.,]\d+)*(?:%|×)?',card['results'])
+    numbers=numeric_tokens(card['results'])
     support=' '.join(c['excerpt'] for c in evidence)
-    if any(n not in support for n in numbers):raise ValueError('重要数值缺少对应可定位证据')
+    if not numbers.issubset(numeric_tokens(support)):raise ValueError('重要数值缺少对应可定位证据')
     if not evidence:raise ValueError('结论缺少可定位证据')
     if card['reading_depth']=='摘要' and card['quality_scores']['evidence']>3:
         raise ValueError('摘要阅读的证据评分不得超过3/5')

@@ -132,3 +132,20 @@ DOI、去版本 arXiv ID、OpenReview ID、Semantic Scholar ID 进行身份合�
 独立试刊JSON使用 `{id,day,cards,sources,shortfalls}`；cards填写完整候选身份和新版审核字段，允许重审旧日报，不改变正常候选和历史推荐。试刊状态位于state/tech/trials；sending/uncertain必须人工核对后sent/retry，sent重复执行不重发。试刊在归档单列，latest始终指正式日报。--health增加重点精读数、有效图数、证据完整率、正式发表数、模板审核提醒及试刊投递状态。
 
 官方会刊优先按PMLR精确ICML卷、CVF主会论文详情、ECVA论文页和TMLR官方名单分层发现。OpenReview动态最终决定和精确日期仍由正常浏览器核验；没有日期或只见投稿页不能录用入选。来源游标记录待查详情，抽样不会冒充完整窗口。
+
+## 参考项目复核（2026-10-05）
+
+本次阅读参考项目当前说明与关键实现，并对照本地代码；以下为待实施建议，不代表已经接入。
+
+| 项目 | 尚可借鉴的能力 | 本系统的取舍 |
+|---|---|---|
+| [DailyPaper](https://github.com/LucaJiang/DailyPaper) | 正负种子推荐、先召回再补充摘要 | 推荐与种子已有；继续核验原文，不采用年份替代精确日期 |
+| [arxiv-daily-plus](https://github.com/sujin-koo/arxiv-daily-plus) | 自然语言兴趣描述、BM25/DPR/SPLADE 初筛 | BM25 已有；先补方法词与同义词召回，语义模型须经本地效果评估后再引入 |
+| [paper-claw](https://github.com/Jian-Lang/personalized-research-paper-claw) | 区分方法、Benchmark、混合论文的笔记模板；按领域组织关联论文 | 优先增加论文类型审核要求，保持每篇最多一图；会议快照只能作发现入口，其配额回溯不能代替日期窗口 |
+| [PaperFlow](https://github.com/OpenRaiser/PaperFlow) | 长短期兴趣、可回放评估、研究 Wiki | 借鉴显式偏好与评估；不采用未选择论文的弱负反馈。模拟用户标签不能当作本用户真实偏好 |
+| [ai-news-brief](https://github.com/frankzch/ai-news-brief) | SimHash 与向量相似去重；讨论上下文 | 增加同一事件的近重复建议与模型核验，保留一手来源和有价值的不同意见；不用热度替代证据 |
+| [ai-daily-digest](https://github.com/AustinWp/ai-daily-digest) | 今日看点、推荐理由、来源与分类统计 | 可增加仅依据入选内容的短导读；不能把单日样本称为行业趋势，不采用评分失败后的默认分进入精选 |
+
+建议实施顺序：先补会刊最终决定与精确日期覆盖，再增加论文类型模板和跨来源事件聚合，然后增加质量回放评估及细分显式偏好，最后建设主题归档与短导读。评估使用真实历史候选、冻结入选集合和人工核验样例，分别衡量事实支持、条件完整、重复、覆盖与阅读价值；不以文章数量或结构完整代替内容质量。
+
+现有 `claim_evidence_completeness` 只统计证据 URL、定位与摘录是否齐全，不证明结论正确。数值核验现采用完整数字匹配，区分正负号与百分数，兼容千分位、科学记数及等值精度；仍须人工检查对应指标、基线、数据集与实验条件，不能因不同表格碰巧出现相同数字就视为结论已核实。
