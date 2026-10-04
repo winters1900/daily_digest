@@ -188,7 +188,11 @@ def build_site(root, directory=None):
     for data in editions:
         titles = ' / '.join(c['title'] for c in data['cards'][:3])
         archive += '<a href="' + esc(data['day']) + '.html"><time>' + esc(data['day']) + '</time><h2>技术日报</h2><p>' + esc(titles or '采集记录') + '</p></a>'
-    archive += '</div>'+trial_archive(directory)
+    archive += '</div><p><a href="themes.html">按研究主题回看 →</a></p>'+trial_archive(directory)
+    from .themes import render as render_themes
+    sent_editions=[json.loads(raw) for raw,sent in rows if sent]
+    atomic_write(directory/'themes.html',render_themes(sent_editions))
+    paths.append('docs/themes.html')
     atomic_write(directory / 'index.html', shell('日报归档', archive))
     atomic_write(directory / 'assets/digest-v3.css', (Path(__file__).parent/'web/digest.css').read_text()+'\n'+(Path(__file__).parent/'web/quality.css').read_text())
     paths.append('docs/assets/digest-v3.css')

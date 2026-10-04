@@ -4,6 +4,8 @@
 
 技术日报从固定 X 作者、官方会刊、arXiv、Semantic Scholar、HF 和 AI 技术资讯来源筛选最近两个自然月的内容，目标10篇论文＋最多10条资讯，每天北京时间10:30运行。邮件日报使用独立配置，每天10:00处理已启用的收件箱。登录凭据保存在系统钥匙串，运行状态和邮件正文不上传到仓库。
 
+第四版审核按方法、基准、数据集、理论与系统等类型核验结论，重要数字关联具体实验条件与证据。支持显式兴趣、经核验的事件关联、离线质量回放及[研究主题归档](https://winters1900.github.io/daily_digest/themes.html)；结构完整不等于事实正确，原文核验由当前 Codex 模型完成。
+
 ## 安装
 
 ```sh
@@ -19,6 +21,8 @@ cp config.example.yaml config.yaml
 .venv/bin/python main.py --plan
 .venv/bin/python main.py --collect
 .venv/bin/python main.py --review-queue
+.venv/bin/python main.py --profile
+.venv/bin/python main.py --evaluate
 .venv/bin/python main.py --input state/tech/reviews.json
 .venv/bin/python main.py --compose --dry-run
 .venv/bin/python main.py --compose --push

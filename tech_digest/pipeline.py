@@ -56,6 +56,8 @@ def init(conn, root):
     CREATE TABLE IF NOT EXISTS feedback (id INTEGER PRIMARY KEY, candidate_id TEXT, action TEXT,
       reason TEXT, observed_at TEXT);
     ''')
+    from .events import init as init_events
+    init_events(conn)
     if not conn.execute("SELECT 1 FROM pipeline_meta WHERE key='history_migrated'").fetchone():
         aliases = source_aliases(root)
         for uid, day, raw in conn.execute('SELECT id,day,card FROM items').fetchall():
@@ -116,7 +118,7 @@ def plan(root, now, all_sources=False):
             'selection':cfg['selection'],'topics':TOPIC_NAMES,
             'input_schema':{'observed_at':'本次带时区的时间','sources':'id/status/note/evidence_urls/coverage/window_months；可附 phase: identity/content、cursor、backfill_cursor、backfill_complete',
                             'items':'原始候选：kind/source_id/title/url/abstract/标识符/各事件日期；缺日期或评分也入库等待审核',
-                            'reviews':'id/review_version:3/problem/contribution/results/conditions/reading_advice/subtopic/claims/score_reasons/summary/why/limitations/action/reading_depth/topic/quality_scores/review_evidence/date_evidence_url；论文另填 review_status/venue/track/verification_url/first_public_date；资讯另填 news_section/event_id，视频另填 transcript_url/transcript_excerpt'},
+                            'reviews':'id/review_version:4/paper_type/type_details/findings/research_tags/problem/contribution/results/conditions/reading_advice/subtopic/claims/score_reasons/summary/why/limitations/action/reading_depth/topic/quality_scores/review_evidence/date_evidence_url；论文另填 review_status/venue/track/verification_url/first_public_date；资讯另填 news_section/event_id，视频另填 transcript_url/transcript_excerpt'},
             'commands':['--collect','--review-queue','--input state/tech/collection.json','--compose --dry-run','--compose --push','--health'],
             'cost_policy':'公开接口/RSS优先，Codex读取浏览器及原创摘要；不调用付费模型或抓取API'}
 
@@ -166,6 +168,13 @@ def _merge_data(old, new):
         if key not in result or result[key] in (None,'',[]): result[key] = value
     for key in ('updated_date','updated_at'):
         if new.get(key) and (not old.get(key) or str(new[key])>str(old[key])):result[key]=new[key]
+    # 官方采集可补充事件证据，不能抹除既有证据或改写已核验首次公开日。
+    for key in ('official_events',):
+        if new.get(key):
+            unique={json.dumps(v,sort_keys=True):v for v in old.get(key,[])+new[key]}
+            result[key]=list(unique.values())
+    if new.get('official_metadata'):result['official_metadata']=new['official_metadata']
+    if 'publication_missing' in new:result['publication_missing']=new['publication_missing']
     result['discovery_sources'] = sorted(set(old.get('discovery_sources',[])+new.get('discovery_sources',[])))
     return result
 
@@ -200,6 +209,11 @@ def store_candidate(conn, root, raw, now, source_map=None, aliases=None):
         conn.execute('UPDATE candidate_aliases SET candidate_id=? WHERE candidate_id=?',(uid,old_id))
         conn.execute('INSERT OR REPLACE INTO candidate_aliases VALUES (?,?)',(old_id,uid))
         conn.execute('UPDATE feedback SET candidate_id=? WHERE candidate_id=?',(uid,old_id))
+        event_rows=conn.execute('SELECT * FROM event_links WHERE left_id=? OR right_id=?',(old_id,old_id)).fetchall()
+        conn.execute('DELETE FROM event_links WHERE left_id=? OR right_id=?',(old_id,old_id))
+        for a,b,*fields in event_rows:
+            a=uid if a==old_id else a;b=uid if b==old_id else b
+            if a!=b:conn.execute('INSERT OR REPLACE INTO event_links VALUES (?,?,?,?,?,?)',(*( [a,b] if fields[0]=='extends' else sorted([a,b]) ),*fields))
         conn.execute('DELETE FROM candidates WHERE id=?',(old_id,))
         conn.execute('DELETE FROM merge_suggestions WHERE left_id=? OR right_id=?',(old_id,old_id))
         for related_id,related_data in conn.execute('SELECT id,data FROM candidates').fetchall():
@@ -213,6 +227,9 @@ def store_candidate(conn, root, raw, now, source_map=None, aliases=None):
     conn.execute('INSERT INTO candidates VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at',
                  (uid,json.dumps(card,ensure_ascii=False),state,'待核验与评分',now.isoformat(),now.isoformat()))
     for key in keys: conn.execute('INSERT OR REPLACE INTO candidate_aliases VALUES (?,?)',(key,uid))
+    if len(old_rows)>1:
+        from .events import rebuild
+        rebuild(conn)
     if not old_rows and card['kind']=='paper':
         title = re.sub(r'\W+','',card['title']).lower()
         for other_id,data in conn.execute('SELECT id,data FROM candidates WHERE id!=?',(uid,)).fetchall():
@@ -427,8 +444,16 @@ def review_queue(root, now):
     with connection(root) as conn:
         suggestions=[dict(left_id=r[0],right_id=r[1],similarity=r[2]) for r in conn.execute('SELECT * FROM merge_suggestions')]
         rows=[dict(json.loads(r[0]),pending_reason=r[1]) for r in conn.execute("SELECT data,reason FROM candidates WHERE state='pending'")]
-        if cfg['selection'].get('minimum_review_version',1)>=3:
-            rows += [dict(json.loads(raw),pending_reason='旧审核须补充新版结构与证据') for raw, in conn.execute("SELECT data FROM candidates WHERE state='reviewed'") if json.loads(raw).get('review_version',1)<3]
+        minimum=cfg['selection'].get('minimum_review_version',1)
+        if minimum>=3:
+            rows += [dict(json.loads(raw),pending_reason='旧审核须补充新版结构与证据') for raw, in conn.execute("SELECT data FROM candidates WHERE state='reviewed'") if json.loads(raw).get('review_version',1)<minimum]
+        from .preferences import profile,retrieval_query
+        interest_profile=profile(conn,now)
+        from .events import suggestions as event_suggestions
+        event_pool=[json.loads(raw) for raw, in conn.execute('SELECT data FROM candidates ORDER BY updated_at DESC,id LIMIT 250')]
+        seen={c['id'] for c in event_pool}
+        event_pool += [json.loads(raw) for raw, in conn.execute("SELECT data FROM candidates WHERE state='recommended' ORDER BY updated_at DESC,id LIMIT 100") if json.loads(raw)['id'] not in seen]
+        story_suggestions=event_suggestions(event_pool)
         eligible=[]
         for c in rows:
             known=c.get('published_date') or c.get('accepted_date') or (c.get('first_public_date') if c.get('review_status')=='preprint' else None)
@@ -436,10 +461,12 @@ def review_queue(root, now):
                 conn.execute('UPDATE candidates SET reason=? WHERE id=?',('现有日期超出窗口，若有近期录用／发表须补官方证据',c['id']))
             else:eligible.append(c)
         rows=eligible
+    publication_tasks=sorted((c for c in rows if c['kind']=='paper' and c.get('source_id','').startswith('paper:')),
+                             key=lambda c:(bool(c.get('official_events')),c.get('accepted_date') or c.get('published_date') or '',c['id']),reverse=True)[:20]
     for kind,limit in [('paper',cfg['selection']['review_paper_limit']),('news',cfg['selection']['review_news_limit'])]:
         group=[c for c in rows if (c['kind']=='paper')==(kind=='paper')]
         docs=[c['title']+' '+c.get('abstract','')+' '+c.get('raw_text','')[:12000] for c in group]
-        query=' '.join(term for terms in cfg['topics'].values() for term in terms)
+        query=' '.join(term for terms in cfg['topics'].values() for term in terms)+' '+retrieval_query(interest_profile)
         scores=bm25(docs,query)
         # BM25 只初筛，保留少量低关键词匹配项，避免漏掉新方向。
         ordered=sorted(zip(group,scores),key=lambda pair:(-pair[1],pair[0]['id']))
@@ -457,8 +484,18 @@ def review_queue(root, now):
         reserve=min(3,limit,len(ordered)) if len(ordered)>limit else 0
         exploration=sorted(ordered[limit-reserve:],key=lambda pair:(pair[0].get('first_public_date') or pair[0].get('published_date') or '',pair[0]['id']),reverse=True)[:reserve]
         groups[kind]=[dict(c,prefilter_score=round(score,3)) for c,score in ordered[:limit-reserve]+exploration]
+        if kind=='paper':
+            official=[c for c in publication_tasks if c.get('official_events')][:min(5,limit)]
+            chosen={c['id'] for c in official}
+            groups[kind]=(official+[c for c in groups[kind] if c['id'] not in chosen])[:limit]
+    for card in groups['paper']:
+        if card.get('official_events') or card.get('verification_note'):
+            card['publication_task']={'priority':'先核验官方事件与日期；缺证据不标录用',
+                'events':card.get('official_events',[]),'missing':card.get('publication_missing',[])}
+    from .research import instructions
     return {'pipeline_version':2,'observed_at':now.isoformat(),'queue':groups,'merge_suggestions':suggestions,
-            'instructions':'使用 review_version:3；按 TECH_DIGEST.md 填结构化结论、条件、claims、score_reasons、subtopic。重点论文阅读方法、实验与限制并填 read_sections。不得把关键词或元数据当作阅读完成。'}
+            'event_suggestions':story_suggestions,'publication_tasks':publication_tasks,'research_schema':instructions(),'preference_profile':interest_profile,
+            'instructions':'使用 review_version:4；逐条 findings 关联 claims.id，记录指标、比较对象、实验条件与支持理由。按论文类型填写 type_details；未知明确注明，重点须读关键章节。近重复仅建议，核验后 --link-event。'}
 
 
 def feedback(root, uid, action, reason, now):
@@ -480,7 +517,7 @@ def feedback_actions(conn):
 
 
 def dedup_keys(card):
-    return {prefix+str(card[field]) for field,prefix in [('theme_id','theme:'),('event_id','event:')] if card.get(field)} or {'item:'+card['id']}
+    return {prefix+str(card[field]) for field,prefix in [('theme_id','theme:'),('event_id','event:'),('story_id','story:')] if card.get(field)} or {'item:'+card['id']}
 
 
 def heat(card):
@@ -489,18 +526,16 @@ def heat(card):
     return value if math.isfinite(value) and value>=0 else 0
 
 
-def rank(root, conn, cards):
+def rank(root, conn, cards, now=None):
     cfg=config(root)['selection'];actions=feedback_actions(conn)
-    weights=Counter()
-    for uid,action in actions.items():
-        row=conn.execute('SELECT data FROM candidates WHERE id=?',(uid,)).fetchone()
-        if row:
-            topic=json.loads(row[0]).get('topic')
-            if topic:weights[topic]+=1 if action=='liked' else -1
     historical=set()
     for (raw,) in conn.execute("SELECT data FROM candidates WHERE state='recommended'"):
         historical.update(dedup_keys(json.loads(raw)))
     names={s['id']:s['name'] for s in registry(root)}
+    from .preferences import profile,adjustment
+    from .__main__ import TZ
+    from datetime import datetime
+    interest_profile=profile(conn,now or datetime.now(TZ))
     result=[]
     for c in cards:
         if dedup_keys(c)&historical:continue
@@ -510,7 +545,9 @@ def rank(root, conn, cards):
         if base<cfg['minimum_score']:continue
         c['discovery_labels']=[names[sid] for sid in c.get('discovery_sources',[]) if sid in names]
         c['quality_score']=round(base,2)
-        c['ranking_score']=round(base+max(-5,min(5,weights[c['topic']])),2)
+        boost,_=adjustment(c,interest_profile)
+        c['ranking_score']=round(base+boost,2)
+        # 偏好信号只用于本地排序解释，不进入公开日报卡片。
         result.append(c)
     return sorted(result,key=lambda c:(-c['ranking_score'],-heat(c),c['id']))
 
@@ -625,13 +662,14 @@ def _compose(root, now, dry_run=False):
         for uid,raw in conn.execute("SELECT id,data FROM candidates WHERE state='reviewed'").fetchall():
             try:
                 card=validate_review(root,json.loads(raw),now)
+                if card.get('review_version',1)<cfg['selection'].get('minimum_review_version',1):raise ValueError('旧审核须补充新版结构与证据')
                 if cfg['selection'].get('minimum_review_version',1)>=3:
                     from .quality import validate
                     validate(card)
                 cards.append(card)
             except (ValueError,KeyError,TypeError) as exc:
                 rejected.append({'id':uid,'reason':str(exc)})
-        ranked=rank(root,conn,cards);selected=choose(root,ranked)
+        ranked=rank(root,conn,cards,now);selected=choose(root,ranked)
         modern=cfg['selection'].get('minimum_review_version',1)>=3
         if modern:
             from .quality import focus_cards,check
@@ -647,7 +685,13 @@ def _compose(root, now, dry_run=False):
             selected=[c for c in selected if c['id'] not in bad]
         for c in selected:
             c['related_links']=[{'url':other['url'],'title':other['title']} for other in ranked
-                                if other['id']!=c['id'] and c.get('theme_id') and c.get('theme_id')==other.get('theme_id')]
+                                if other['id']!=c['id'] and ((c.get('theme_id') and c.get('theme_id')==other.get('theme_id')) or (c.get('story_id') and c.get('story_id')==other.get('story_id')))]
+            from .events import relations
+            for relation in relations(conn,c['id']):
+                other=conn.execute('SELECT data,state FROM candidates WHERE id=?',(relation['other_id'],)).fetchone()
+                if other and other[1] in {'reviewed','recommended'}:
+                    record=json.loads(other[0])
+                    c['related_links'].append(dict(title=record['title'],url=record['url'],relation=relation['relation'],direction=relation['direction'],reason=relation['reason'],evidence_url=relation['evidence_url']))
         ok=sum(s.get('status')=='ok' for s in fresh)
         status='failed' if ok==0 else ('partial' if any(s.get('status')!='ok' for s in fresh) else 'ok')
         counts={'paper':sum(c['kind']=='paper' for c in selected),'news':sum(c['kind']!='paper' for c in selected)}
@@ -711,6 +755,12 @@ def health(root, now):
         quality_row=conn.execute('SELECT data FROM web_editions ORDER BY day DESC LIMIT 1').fetchone()
         from .quality import check
         quality_health=check(json.loads(quality_row[0])['cards'],root) if quality_row and json.loads(quality_row[0]).get('pipeline_version',1)>=3 else {'status':'legacy','metrics':{},'warnings':[{'reason':'最新正式日报仍使用旧审核格式'}]}
+        publication_pending=[]
+        for uid,raw,reason in conn.execute("SELECT id,data,reason FROM candidates WHERE state='pending'"):
+            card=json.loads(raw)
+            if not card.get('source_id','').startswith('paper:'):continue
+            missing=card.get('publication_missing') or ['官方发表状态、轨道与事件日期待审核']
+            publication_pending.append({'id':uid,'source_id':card['source_id'],'missing':missing,'reason':reason})
         last_sent=conn.execute('SELECT max(day) FROM web_editions WHERE sent_at IS NOT NULL').fetchone()[0]
         last_metrics=[json.loads(r[0]) for r in conn.execute('SELECT details FROM source_runs WHERE id IN (SELECT max(id) FROM source_runs GROUP BY source_id)')]
         uncertain=conn.execute("SELECT day,state FROM send_attempts WHERE state IN ('sending','uncertain')").fetchall()
@@ -751,5 +801,6 @@ def health(root, now):
             'candidates':counts,'sources':recent,'uncollected_sources':uncollected,'source_gaps':gaps,'stale_sources':stale,
             'latest_edition':last_edition,'latest_sent_edition':last_sent,'delivery_overdue':overdue,
             'quality':quality_health,'trials':trials,'source_metrics':last_metrics,'publication_stages':publications,'pending_editions':pending,
+            'publication_verification':{'pending':len(publication_pending),'tasks':publication_pending[:30],'policy':'官方状态/轨道/精确事件日期缺失留待核验，不用预印本掩盖正式发表缺口'},
             'uncertain_deliveries':uncertain,'warnings':warnings,
             'runtime':'本机Codex需运行、联网，X登录有效；10:30开始，不保证关机状态下采集'}

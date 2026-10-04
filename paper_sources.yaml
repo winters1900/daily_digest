@@ -37,6 +37,9 @@ sources:
   url: https://iclr.cc/
   verification: 从对应年份官网进入 OpenReview，核验最终录用决定，提交页不等于录用
   id: paper:iclr
+  openreview_groups:
+  - ICLR.cc/2026/Conference
+  - ICLR.cc/2025/Conference
   legacy_ids:
   - paper:2
   adapter: conference
@@ -93,6 +96,8 @@ sources:
   url: https://jmlr.org/tmlr/papers/
   verification: 补充同行评审来源，核验正式接受状态，不笼统标记为顶刊
   id: paper:tmlr
+  openreview_groups:
+  - TMLR
   legacy_ids:
   - paper:7
   adapter: conference

@@ -35,7 +35,7 @@ Semantic Scholar API Key 获批后，在本机终端运行 `.venv/bin/python -m 
   "reviews": [{
     "id": "--review-queue 中的候选 ID",
     "title": "中文标题",
-    "review_version": 3,
+    "review_version": 4,
     "topic": "language",
     "subtopic": "reasoning",
     "problem": "研究要解决的问题",
@@ -43,7 +43,11 @@ Semantic Scholar API Key 获批后，在本机终端运行 `.venv/bin/python -m 
     "results": "已核验的主要结论；数值必须有证据",
     "conditions": "实验或适用条件；摘要未提供则明确未知",
     "reading_advice": "建议接下来阅读的章节或核验动作",
-    "claims": [{"text": "已核验结论", "url": "https://原文", "locator": "Abstract 或具体章节/图表号", "excerpt": "支持该结论的短原文证据"}],
+    "claims": [{"id": "claim-1", "text": "已核验结论", "url": "https://原文", "locator": "Abstract 或具体章节/图表号", "excerpt": "支持该结论的短原文证据"}],
+    "paper_type": "method",
+    "research_tags": ["test time compute"],
+    "type_details": {"mechanism": "方法机制；摘要未说明则明确未知", "baselines": "已核验基线或明确未知", "ablations": "消融证据或明确未知"},
+    "findings": [{"statement": "已核验结论", "metric": "结论对应的指标", "conditions": "具体适用条件或摘要未提供的边界", "comparison": "比较对象或明确未提供", "claim_ids": ["claim-1"], "verdict": "supported", "support_reason": "原文定位支持该结论的具体理由"}],
     "score_reasons": {"relevance": "主题关联依据", "evidence": "实际阅读范围", "novelty": "新增信息依据", "recency": "真实首次日期", "reproducibility": "可得实现或实验说明"},
     "summary": "问题、贡献、结果及实验条件；重要数值附可定位依据",
     "why": "阅读价值",
@@ -106,11 +110,11 @@ DOI、去版本 arXiv ID、OpenReview ID、Semantic Scholar ID 进行身份合�
 
 公开仓库只保存代码、公开配置、`docs/YYYY-MM-DD.html`、`index.html`、`latest.html` 和资源。候选、原始内容、反馈、邮件数据与凭据留在忽略的 state 或钥匙串；不得 `git add .`。网页为 https://winters1900.github.io/daily_digest/ 。旧四来源程序保留 `main.py --legacy`，邮件模块独立每天10:00，不受技术日报改动影响。
 
-## 图文质量第三版
+## 图文质量与第四版审核
 
-日常精选现要求 `review_version: 3`。旧采集和历史归档仍可读取；未发送的旧审核会重新进入审核队列，补证后才参加新日报。摘要的 evidence 最高3/5；reproducibility≥4须提供 `reproducibility_evidence_url/reproducibility_note`，展示代码须提供 `code_evidence_url`。录用/发表论文另填 `publication_evidence: {url,locator,excerpt,event_date,venue,track}`，必须对应官方论文详情或最终决定，与日期、会刊、轨道一致；主页和索引不得替代。
+日常精选现要求 `review_version: 4`。旧采集和历史归档仍可读取；未发送的旧审核会重新进入审核队列，补证后才参加新日报。摘要的 evidence 最高3/5；reproducibility≥4须提供 `reproducibility_evidence_url/reproducibility_note`，展示代码须提供 `code_evidence_url`。录用/发表论文另填 `publication_evidence: {url,locator,excerpt,event_date,venue,track}`，必须对应官方论文详情或最终决定，与日期、会刊、轨道一致；主页和索引不得替代。
 
-每条填 `problem/contribution/results/conditions/reading_advice/subtopic/score_reasons`。`claims` 是 `{text,url,locator,excerpt}` 数组，重要数值须与原文段落、表格或图号相符；自动检查不能代替模型阅读。定位不能用通用说明，重复摘录或三篇以上相同评分向量需要复核。
+每条填 `problem/contribution/results/conditions/reading_advice/subtopic/score_reasons`。`claims` 是 `{id,text,url,locator,excerpt}` 数组，重要数值须与原文段落、表格或图号相符；自动检查不能代替模型阅读。定位不能用通用说明，重复摘录或三篇以上相同评分向量需要复核。
 
 `subtopic` 使用 quality.py 的统一标签；视频跨主方向统一归入 video。同一细分方向最多三篇。每天2–3篇重点论文填 `focus: true`，阅读深度为关键章节/正文/复现，并填 `read_sections: {method,experiments,limitations}`。作者没有独立局限章节时，记录实际读过的实验边界和自身判断，不能编造章节。只读摘要不能标重点。
 
@@ -122,7 +126,7 @@ DOI、去版本 arXiv ID、OpenReview ID、Semantic Scholar ID 进行身份合�
 下载只允许公开官方白名单HTTPS主机，不导出登录凭据；重定向逐跳检查，限流遵守Retry-After，最多三次。资源转换为不携带元数据的WebP并记录哈希、尺寸；单张目标800KB。下载或许可失败降级文字卡片，保留诊断。网页使用独立digest-v3.css，旧日报页面保持冻结。图片须和HTML版本一起确认上线，才能发微信。
 
 ```sh
-.venv/bin/python main.py --quality-check --input state/tech/reviews-v3.json
+.venv/bin/python main.py --quality-check --input state/tech/reviews-v4.json
 .venv/bin/python main.py --trial state/tech/quality-trial-YYYY-MM-DD-HHMMSS.json --dry-run
 .venv/bin/python main.py --trial state/tech/quality-trial-YYYY-MM-DD-HHMMSS.json
 .venv/bin/python main.py --trial state/tech/quality-trial-YYYY-MM-DD-HHMMSS.json --push
@@ -131,11 +135,11 @@ DOI、去版本 arXiv ID、OpenReview ID、Semantic Scholar ID 进行身份合�
 
 独立试刊JSON使用 `{id,day,cards,sources,shortfalls}`；cards填写完整候选身份和新版审核字段，允许重审旧日报，不改变正常候选和历史推荐。试刊状态位于state/tech/trials；sending/uncertain必须人工核对后sent/retry，sent重复执行不重发。试刊在归档单列，latest始终指正式日报。--health增加重点精读数、有效图数、证据完整率、正式发表数、模板审核提醒及试刊投递状态。
 
-官方会刊优先按PMLR精确ICML卷、CVF主会论文详情、ECVA论文页和TMLR官方名单分层发现。OpenReview动态最终决定和精确日期仍由正常浏览器核验；没有日期或只见投稿页不能录用入选。来源游标记录待查详情，抽样不会冒充完整窗口。
+官方会刊优先按PMLR精确ICML卷、CVF主会论文详情、ECVA论文页和TMLR官方名单分层发现。OpenReview API v2按官方 venueid 获取录用候选，并记录 pdate 或官方最终决定事件日期；投稿日期、会议召开日期不代替录用日期。API限流或无效响应时保留真实故障，并降级官方目录发现；最终决定与精确日期继续由正常浏览器核验；没有日期或只见投稿页不能录用入选。来源游标记录待查详情，抽样不会冒充完整窗口。
 
 ## 参考项目复核（2026-10-05）
 
-本次阅读参考项目当前说明与关键实现，并对照本地代码；以下为待实施建议，不代表已经接入。
+本次阅读参考项目当前说明与关键实现，并对照本地代码；以下设计已完成本地实现及演练；API与浏览器来源仍按实际访问结果报告覆盖，不能把适配器实现视为来源已完成核验。
 
 | 项目 | 尚可借鉴的能力 | 本系统的取舍 |
 |---|---|---|
@@ -146,6 +150,30 @@ DOI、去版本 arXiv ID、OpenReview ID、Semantic Scholar ID 进行身份合�
 | [ai-news-brief](https://github.com/frankzch/ai-news-brief) | SimHash 与向量相似去重；讨论上下文 | 增加同一事件的近重复建议与模型核验，保留一手来源和有价值的不同意见；不用热度替代证据 |
 | [ai-daily-digest](https://github.com/AustinWp/ai-daily-digest) | 今日看点、推荐理由、来源与分类统计 | 可增加仅依据入选内容的短导读；不能把单日样本称为行业趋势，不采用评分失败后的默认分进入精选 |
 
-建议实施顺序：先补会刊最终决定与精确日期覆盖，再增加论文类型模板和跨来源事件聚合，然后增加质量回放评估及细分显式偏好，最后建设主题归档与短导读。评估使用真实历史候选、冻结入选集合和人工核验样例，分别衡量事实支持、条件完整、重复、覆盖与阅读价值；不以文章数量或结构完整代替内容质量。
+本次已增加会刊日期证据队列、类型审核、事件关联、离线回放、细分显式偏好、主题归档和依据重点内容生成的短导读。官方核验覆盖仍需持续补查；DPR/SPLADE语义模型尚未引入。评估使用真实历史候选、冻结入选集合和人工核验样例，分别衡量事实支持、条件完整、重复、覆盖与阅读价值；不以文章数量或结构完整代替内容质量。
 
 现有 `claim_evidence_completeness` 只统计证据 URL、定位与摘录是否齐全，不证明结论正确。数值核验现采用完整数字匹配，区分正负号与百分数，兼容千分位、科学记数及等值精度；仍须人工检查对应指标、基线、数据集与实验条件，不能因不同表格碰巧出现相同数字就视为结论已核实。
+
+
+## 第四版审核、关联与离线评估
+
+论文填写 `paper_type`，可选 method、benchmark、dataset、survey、theory、systems、benchmark-method。`--review-queue` 返回各类型的 `type_details` 必填字段；重点还须填写 `type_evidence_note`，记录实际核验位置。摘要未提供的信息明确写未知，不伪造基线、消融、污染检查或硬件条件。
+
+每条 `findings` 都对应唯一的 `claims.id`，记录指标、实验条件、比较对象及支持理由。重要数字只能引用该 finding 对应的摘录，不能借用其他表格的相同数字；results 中的数字必须由 findings 覆盖。结构检查仍不能证明原文真实支持结论，模型须逐条阅读核验。历史第三版页面保持冻结，只有再次参与新一期选取的旧卡片需要补审。
+
+近重复候选以 `event_suggestions` 提供，不自动合并。原文核验后使用 `--link-event`；duplicate/commentary/contrast 聚合同一事件，论文之间只允许 extends/compares/complements，不合并论文身份。不同意见保留为关联阅读，已确认事件跨日去重。关系和反馈保存在本地，公开页面仅展示已审核的阅读链接及必要说明。
+
+```sh
+.venv/bin/python main.py --link-event 候选A 候选B --relation commentary --reason '已核验为同一发布的解读' --evidence-url https://原文
+.venv/bin/python main.py --preference 'test time compute' 3 --reason '明确关注' --ttl-days 30
+.venv/bin/python main.py --preference 'test time compute' 0 --reason '撤销该关键词偏好'
+.venv/bin/python main.py --profile
+.venv/bin/python main.py --evaluate
+.venv/bin/python main.py --evaluate --input state/tech/labeled-replay.json
+```
+
+显式关键词权重为 -5 至5，不设置期限时长期保留，0取消该词的偏好影响。只有喜欢／不感兴趣产生细分标签偏好；同一候选重复反馈不叠加，短期分量按30天半衰期衰减，已读与未点击保持中性。偏好排序调整最多正负5分，不绕过65分质量门槛或主题配额，私人关键词和反馈原因不写入公开日报。
+
+离线评估输入为 `{episodes:[{id,at,candidates,relevance_labels,content_labels}]}`。candidates 是完整卡片，相关性标签为池内 ID 对应的0–3分；内容标签为 `{候选ID:{supported:true,conditions_complete:true,reading_value:true}}`。仅人工逐条核验的布尔标签可作为事实支持／条件完整／阅读价值指标；完整候选池均有相关性标注才报告 Precision/NDCG，未标注不视为不相关。无标注历史回放只报告结构诊断，不改候选、偏好、发送或推荐历史。
+
+`docs/themes.html` 仅从已发送日报的冻结集合建立五方向主题归档，不读取未入选池和私人配置。日报短导读仅依据重点论文的问题与贡献生成，不能把单日样本称为行业趋势。新增试刊通过 `--trial ... --push --no-notify` 验证上线，不替换 latest、不消耗正常候选、不额外发送微信。

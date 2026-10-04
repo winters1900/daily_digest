@@ -71,6 +71,9 @@ def validate(card):
     if figure:
         from .media import validate_descriptor
         validate_descriptor(figure)
+    if card.get('review_version',1)>=4:
+        from .research import validate as typed_validate
+        typed_validate(card)
     return card
 
 
@@ -78,6 +81,7 @@ def check(cards, root=None):
     errors=[];warnings=[]
     vectors=Counter(tuple(c.get('quality_scores',{}).get(k) for k in SCORES) for c in cards)
     excerpts=Counter(c.get('evidence_excerpt','').strip() for c in cards)
+    finding_reasons=Counter(f.get('support_reason','').strip() for c in cards for f in c.get('findings',[]))
     for card in cards:
         try:
             validate(card)
@@ -91,6 +95,8 @@ def check(cards, root=None):
         if card.get('evidence_excerpt') and excerpts[card['evidence_excerpt'].strip()]>=2:
             warnings.append({'id':card.get('id'),'reason':'证据摘录重复，请核对原文定位'})
         if card.get('media_warning'):warnings.append({'id':card.get('id'),'reason':card['media_warning']})
+        if any(finding_reasons.get(f.get('support_reason','').strip(),0)>=2 for f in card.get('findings',[])):
+            warnings.append({'id':card.get('id'),'reason':'逐条结论支持理由重复，请具体核对指标、基线和实验条件'})
     focus=[c for c in cards if c.get('focus')]
     if len(focus)<2:warnings.append({'reason':'重点精读不足两篇，按实际阅读深度展示'})
     if len(focus)>3:errors.append({'reason':'重点论文最多三篇'})
@@ -101,7 +107,7 @@ def check(cards, root=None):
     if sum(bool(c.get('figure',{}).get('asset')) for c in cards)>3:
         errors.append({'reason':'配图超过三张'})
     return {'status':'failed' if errors else 'ok','errors':errors,'warnings':warnings,
-            'metrics':metrics(cards),'review_version':3}
+            'metrics':metrics(cards),'review_version':max((c.get('review_version',1) for c in cards),default=3)}
 
 
 def metrics(cards):
@@ -110,7 +116,10 @@ def metrics(cards):
             'figures':sum(bool(c.get('figure',{}).get('asset')) for c in cards),
             'peer_reviewed':sum(c.get('review_status') in {'accepted','published'} for c in cards),
             'claim_evidence_completeness':sum(bool(v.get('url') and v.get('locator') and v.get('excerpt')) for v in claims)/len(claims) if claims else None,
-            'structured_reviews':sum(c.get('review_version',1)>=3 for c in cards)}
+            'structured_reviews':sum(c.get('review_version',1)>=3 for c in cards),
+            'typed_papers':sum(c.get('review_version',1)>=4 and c['kind']=='paper' for c in cards),
+            'contextual_findings':sum(len(c.get('findings',[])) for c in cards),
+            'evidence_metric_scope':'字段完整率，非事实正确率；结论、基线和条件仍须逐条阅读核验'}
 
 
 def focus_cards(cards):

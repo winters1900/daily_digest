@@ -17,6 +17,22 @@ class Metadata(HTMLParser):
 
 
 def conference(source,http,now,progress):
+    if source.get('openreview_groups'):
+        from .openreview import collect
+        found,meta=collect(source,http,now,progress)
+        if meta['status']=='ok':return found,meta
+        # API失效不丢已有官方目录入口；失败状态保留，目录不冒充最终决定。
+        fallback=dict(source);fallback.pop('openreview_groups')
+        try:
+            entries,extra=conference(fallback,http,now,progress)
+            existing={c['url'] for c in found}
+            found.extend(c for c in entries if c['url'] not in existing)
+            cursor=dict(extra.get('cursor',{}));cursor.update(meta.get('cursor',{}));meta['cursor']=cursor
+            meta['coverage']=extra.get('coverage','index_only')
+            meta['note']+='；官方目录补充 %d 条待核验线索，不视为 API 已恢复'%len(entries)
+            meta['evidence_urls']=list(dict.fromkeys(meta.get('evidence_urls',[])+[source['url']]))
+        except SourceError:pass
+        return found,meta
     root=source['url'];text=http.get(root).text;page=Page(text)
     venues=source.get('venues',[]);sid=source['id'];indices=[]
     if sid=='paper:icml':
@@ -71,6 +87,7 @@ def conference(source,http,now,progress):
         # the final decision and its timestamp still need a normal browser reading.
         if urlparse(url).hostname=='openreview.net':
             result.append(entry(source,title,url,openreview_id=re.search(r'id=([^&]+)',url)[1],verification_url=root,
+                                publication_missing=['官方最终决定与轨道','录用/发表精确日期'],
                                 verification_note='来自官方会刊名单，最终录用决定、轨道与日期仍待核验'))
         else:
             try:detail=http.get(url).text
@@ -86,6 +103,7 @@ def conference(source,http,now,progress):
             result.append(entry(source,value('citation_title') or title,url,abstract=abstract,
                                 authors=meta.get('citation_author',[]),published_date=date.replace('/','-') if exact else None,
                                 doi=value('citation_doi'),verification_url=url,
+                                publication_missing=[] if exact else ['官方论文页缺少精确发表日期'],
                                 verification_note='官方论文详情已读取；日期仅采用明确年月日，发表状态和轨道待审核'))
         done.append(url)
     cursor.update(checked_details=done[-10000:],pending_details=pending[len(result):])

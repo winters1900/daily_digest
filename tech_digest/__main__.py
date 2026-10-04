@@ -433,6 +433,13 @@ def main(argv=None):
     parser.add_argument('--compose', action='store_true', help='按证据评分与分区配额生成日报')
     parser.add_argument('--dry-run', action='store_true', help='只预览精选，不生成或发送日报')
     parser.add_argument('--health', action='store_true', help='候选、覆盖进度与投递健康检查')
+    parser.add_argument('--evaluate', action='store_true', help='离线质量回放，--input指定人工标注样例；不修改推荐历史')
+    parser.add_argument('--profile', action='store_true', help='查看仅由明确反馈产生的本地兴趣')
+    parser.add_argument('--preference', nargs=2, metavar=('TERM','WEIGHT'), help='明确设置细分关键词偏好，权重-5至5，0取消')
+    parser.add_argument('--ttl-days', type=int, help='临时偏好有效天数，省略为长期')
+    parser.add_argument('--link-event', nargs=2, metavar=('LEFT','RIGHT'), help='核验后关联同一事件或论文关系，不合并论文身份')
+    parser.add_argument('--relation', default='duplicate', help='duplicate/commentary/contrast/extends/compares/complements')
+    parser.add_argument('--evidence-url', help='事件关联核验依据，HTTPS')
     parser.add_argument('--feedback', nargs=2, metavar=('ID','ACTION'), help='记录 liked/disliked/read 明确反馈')
     parser.add_argument('--reason', default='', help='反馈原因')
     parser.add_argument('--no-notify', action='store_true', help='发布网页而不发送微信')
@@ -441,7 +448,19 @@ def main(argv=None):
     now = datetime.now(TZ)
     from . import pipeline
     try:
-        if args.trial:
+        if args.evaluate:
+            from .evaluation import replay,archived
+            result=replay(ROOT,json.loads(args.input.read_text()),now) if args.input else archived(ROOT,now)
+        elif args.profile:
+            from .preferences import profile
+            with pipeline.connection(ROOT) as conn:result=profile(conn,now)
+        elif args.preference:
+            from .preferences import set_preference
+            result=set_preference(ROOT,*args.preference,args.reason,now,args.ttl_days)
+        elif args.link_event:
+            from .events import link
+            result=link(ROOT,*args.link_event,args.relation,args.reason,args.evidence_url or '',now)
+        elif args.trial:
             from .trial import run
             result=run(ROOT,args.trial,now,push=args.push,dry_run=args.dry_run,notify=not args.no_notify)
         elif args.resolve_trial:
