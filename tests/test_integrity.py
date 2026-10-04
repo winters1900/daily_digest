@@ -28,6 +28,90 @@ class IntegrityTests(unittest.TestCase):
         self.fx.ingest(reviews=[self.fx.review(uid,news_section='研究动态',event_id=event,author='Author')])
         return uid
 
+    def test_cross_source_video_and_repository_still_require_evidence(self):
+        for url,sid,missing in [('https://www.youtube.com/watch?v=demo','youtube:lex','字幕'),
+                                ('https://github.com/example/research','news:github-trending','技术变化')]:
+            raw=dict(kind='news',source_id='news:hn',title='Research',url=url,published_date='2026-10-03')
+            uid=self.fx.ingest([raw])['candidate_ids'][0]['id']
+            self.fx.ingest([dict(raw,source_id=sid)])
+            review=self.fx.review(uid,news_section='深度解读',event_id=url)
+            result=self.fx.ingest(reviews=[review])
+            self.assertIn(missing,result['rejected'][0]['reason'])
+            if 'youtube' in url:
+                review.update(transcript_url=url,transcript_excerpt='Actual readable transcript',reading_depth='字幕')
+            else:
+                review.update(change_evidence_url=url+'/releases/tag/v1',technical_change='New inference implementation')
+            self.assertFalse(self.fx.ingest(reviews=[review])['rejected'])
+
+    def test_direct_video_link_requires_transcript_without_channel_discovery(self):
+        uid=self.fx.ingest([dict(kind='news',source_id='news:hn',title='Video',url='https://youtu.be/demo',published_date='2026-10-03')])['candidate_ids'][0]['id']
+        result=self.fx.ingest(reviews=[self.fx.review(uid,news_section='深度解读',event_id='video')])
+        self.assertIn('字幕',result['rejected'][0]['reason'])
+
+    def test_stale_sources_detected_even_after_today_delivery(self):
+        with p.connection(self.root) as conn:
+            for source in p.registry(self.root):
+                conn.execute('INSERT OR REPLACE INTO source_state VALUES (?,?,?,?,?,?,?)',
+                             (source['id'],'2026-01-01T10:30:00+08:00','sample','{}','{}',0,0))
+            conn.execute('INSERT INTO web_editions VALUES (?,?,?,?)',('2026-10-04','{}',None,self.now.isoformat()))
+        result=p.health(self.root,self.now.replace(hour=13))
+        self.assertFalse(result['delivery_overdue'])
+        self.assertEqual(result['status'],'partial')
+        self.assertEqual(len(result['stale_sources']),len(p.registry(self.root)))
+
+    def test_health_respects_rotation_weekdays_and_today_grace(self):
+        when=self.now.replace(hour=13)
+        with p.connection(self.root) as conn:
+            for source in p.registry(self.root):
+                last=when-timedelta(days=1)
+                if source.get('cadence')=='rotating':
+                    while last.date().toordinal()%3!=source['rotation_group']:last-=timedelta(days=1)
+                elif source.get('cadence')=='twice_weekly':
+                    while last.weekday() not in {1,4}:last-=timedelta(days=1)
+                cursor={'content_checked_at':last.isoformat()}
+                conn.execute('INSERT OR REPLACE INTO source_state VALUES (?,?,?,?,?,?,?)',
+                             (source['id'],last.isoformat(),'sample',json.dumps(cursor),'{}',0,0))
+        self.assertFalse(p.health(self.root,self.now)['stale_sources'])
+        late=p.health(self.root,when)['stale_sources']
+        self.assertIn('discovery:arxiv',{r['id'] for r in late})
+        self.assertNotIn('news:producthunt',{r['id'] for r in late})
+        for source in p.registry(self.root):
+            if source.get('cadence')=='rotating':
+                self.assertEqual(source['id'] in {r['id'] for r in late},when.date().toordinal()%3==source['rotation_group'])
+
+    def test_identity_only_browser_check_is_reported_as_stale(self):
+        self.fx.ingest(sources=[dict(self.fx.source('x:karpathy'),phase='identity',coverage='index_only')])
+        self.assertIn('x:karpathy',{r['id'] for r in p.health(self.root,self.now.replace(hour=13))['stale_sources']})
+
+    def test_batch_daily_and_cumulative_metrics_have_distinct_scopes(self):
+        old=self.now-timedelta(days=1)
+        raw=self.fx.raw(1)
+        uid=p.ingest(self.root,dict(observed_at=old.isoformat(),items=[raw],sources=[self.fx.source()],reviews=[]),old)['candidate_ids'][0]['id']
+        p.ingest(self.root,dict(observed_at=old.isoformat(),reviews=[self.fx.review(uid)]),old)
+        raw2=self.fx.raw(2,first_public_date=None)
+        self.fx.ingest([raw2])
+        self.fx.ingest(sources=[self.fx.source()])
+        p.compose(self.root,self.now)
+        with p.connection(self.root) as conn:
+            entry=json.loads(conn.execute('SELECT details FROM source_runs ORDER BY id DESC LIMIT 1').fetchone()[0])
+        self.assertEqual(entry['batch_metrics']['candidates'],0)
+        self.assertEqual(entry['verified'],0)
+        self.assertIsNone(entry['date_evidence_completeness'])
+        self.assertEqual(entry['daily_metrics']['verified'],0)
+        self.assertEqual(entry['daily_metrics']['selected'],1)
+        self.assertEqual(entry['cumulative_metrics']['candidates'],2)
+        self.assertEqual(entry['cumulative_metrics']['verified'],1)
+        self.assertEqual(entry['cumulative_metrics']['date_evidence_completeness'],.5)
+
+    def test_review_time_uses_actual_execution_not_previous_day_collection(self):
+        now=self.now.replace(hour=0,minute=30)
+        collected=now-timedelta(hours=1)
+        uid=p.ingest(self.root,dict(observed_at=collected.isoformat(),items=[self.fx.raw()]),now)['candidate_ids'][0]['id']
+        p.ingest(self.root,dict(observed_at=collected.isoformat(),reviews=[self.fx.review(uid)]),now)
+        with p.connection(self.root) as conn:
+            card=json.loads(conn.execute('SELECT data FROM candidates WHERE id=?',(uid,)).fetchone()[0])
+        self.assertEqual(card['reviewed_at'],now.isoformat())
+
     def test_invalid_batch_shape_is_rejected_without_partial_mutation(self):
         for field in ('items','sources','reviews'):
             with self.assertRaisesRegex(ValueError,'对象数组'):
@@ -198,7 +282,22 @@ class ArxivIntegrityTests(unittest.TestCase):
         for i in range(offset,offset+count):
             e=SimpleNamespace(id='https://arxiv.org/abs/2610.%05dv1'%(i+1),title='Paper '+str(i),published='2026-10-02T00:00:00Z',updated='2026-10-02T00:00:00Z',summary='Abstract')
             e.get=lambda key,default=None:default;entries.append(e)
-        return SimpleNamespace(bozo=False,entries=entries,feed={'opensearch_totalresults':total})
+        return SimpleNamespace(bozo=False,version='atom10',entries=entries,feed={'opensearch_totalresults':total})
+
+    def test_html_response_does_not_complete_or_advance_backfill(self):
+        http=Mock();http.get.return_value.content=b'<html><body>Verifying your browser</body></html>'
+        progress=dict(backfill_cursor={'window_start':'202608031600','window_end':'202610030230','offset':100,'sort_order':'ascending'})
+        cards,meta=a.arxiv(self.source,http,self.now,progress)
+        self.assertFalse(cards);self.assertEqual(meta['status'],'error')
+        self.assertFalse(meta['backfill_complete']);self.assertEqual(meta['backfill_cursor']['offset'],100)
+        self.assertEqual(http.get.call_count,1)
+
+    def test_valid_empty_atom_is_distinguished_from_missing_metadata(self):
+        for metadata,expected in [('<opensearch:totalResults>0</opensearch:totalResults>','window_checked'),('','sample')]:
+            http=Mock();http.get.return_value.content=('<feed xmlns="http://www.w3.org/2005/Atom" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">'+metadata+'</feed>').encode()
+            cards,meta=a.arxiv(self.source,http,self.now,{})
+            self.assertFalse(cards);self.assertEqual(meta['coverage'],expected)
+            self.assertEqual(meta['backfill_complete'],expected=='window_checked')
     def test_incremental_overflow_fetches_beyond_latest_100(self):
         http=Mock();http.get.return_value.content=b'atom'
         progress=dict(cursor={'scheduled_through':'202610030230'},backfill_cursor={'window_start':'202608031600','window_end':'202610030230','offset':1000,'finished':True,'sort_order':'ascending'})

@@ -305,15 +305,21 @@ def validate_review(root, card, now):
     else:
         if card.get('news_section') not in NEWS_SECTIONS:raise ValueError('资讯栏目无效')
         if not card.get('event_id'):raise ValueError('资讯缺少事件身份')
-        source = {s['id']:s for s in registry(root)}[card['source_id']]
+        source_map={s['id']:s for s in registry(root)}
+        source = source_map[card['source_id']]
+        adapters={source_map[sid]['adapter'] for sid in card.get('discovery_sources',[]) if sid in source_map}
+        adapters.add(source['adapter'])
+        original=urlparse(card['url'])
+        video=original.hostname in {'youtube.com','www.youtube.com','m.youtube.com','youtu.be'}
+        repo=original.hostname=='github.com' and bool(re.fullmatch(r'/[\w.-]+/[\w.-]+/?',original.path))
         if card['kind']=='x' and source.get('identity_status')!='verified':
             if not card.get('identity_verified') or not card.get('identity_evidence_url'):raise ValueError('作者身份尚未核验')
             https_url(card['identity_evidence_url'])
-        if source['adapter']=='youtube':
+        if video or 'youtube' in adapters:
             if not card.get('transcript_excerpt') or not card.get('transcript_url') or card['reading_depth'] not in {'字幕','正文'}:
                 raise ValueError('视频没有可读字幕／逐字稿')
             https_url(card['transcript_url'])
-        if source['adapter'] in {'trending','github_org'} and (not card.get('change_evidence_url') or not card.get('technical_change')):
+        if (repo or adapters & {'trending','github_org'}) and (not card.get('change_evidence_url') or not card.get('technical_change')):
             raise ValueError('开源项目缺少具体技术变化证据')
         card['author']=source['name'] if card['kind']=='x' else card.get('author') or source['name']
         card['organization']=bool(source.get('organization'))
@@ -348,6 +354,7 @@ def ingest(root, payload, now):
             card=json.loads(row[0]);card.update({k:v for k,v in raw.items() if k not in {'id','source_id','kind','url','discovery_sources'}})
             try:
                 card=validate_review(root,card,now)
+                card['reviewed_at']=now.isoformat()
                 reviewed_count+=1
                 conn.execute("UPDATE candidates SET data=?,state='reviewed',reason='',updated_at=? WHERE id=?",(json.dumps(card,ensure_ascii=False),observed.isoformat(),uid))
             except (ValueError,KeyError,TypeError) as exc:
@@ -376,6 +383,7 @@ def ingest(root, payload, now):
             entry['discovered']=discovered
             entry['merged']=sum(x['merged'] for x in ids if x['source_id']==sid)
             entry['accepted_candidates']=sum(x['source_id']==sid for x in ids)
+            entry['candidate_ids']=sorted({x['id'] for x in ids if x['source_id']==sid})
             conn.execute('INSERT INTO source_runs(source_id,observed_at,status,details) VALUES (?,?,?,?)',(sid,observed.isoformat(),entry['status'],json.dumps(entry,ensure_ascii=False)))
             stats.append(entry)
         if payload.get('weekly_review'):
@@ -551,6 +559,38 @@ def compose(root, now, dry_run=False):
     with publication_lock(root):return _compose(root,now,dry_run=dry_run)
 
 
+def update_source_metrics(conn, entry, candidates, selected, day):
+    """按当前批次、当天和累计三种范围统计，历史审核不充当当天审核。"""
+    sid=entry['id']
+    pool=[c for c in candidates if sid in c.get('discovery_sources',[])]
+    def canonical(uid):
+        row=conn.execute('SELECT candidate_id FROM candidate_aliases WHERE alias=?',(uid,)).fetchone()
+        return row[0] if row else uid
+    batch_ids={canonical(uid) for uid in entry.get('candidate_ids',[])}
+    runs=[json.loads(r[0]) for r in conn.execute('SELECT details FROM source_runs WHERE source_id=?',(sid,))]
+    daily=[r for r in runs if r.get('observed_at','')[:10]==day]
+    day_ids={canonical(uid) for r in daily for uid in r.get('candidate_ids',[])}
+    selected_ids={c['id'] for c in selected}
+    def metrics(scope, current=False):
+        verified=[c for c in scope if c.get('_candidate_state') in {'reviewed','recommended'}
+                  and (not current or c.get('reviewed_at','')[:10]==day)]
+        dated=sum(bool(c.get('date_evidence_url')) and bool(c.get('first_public_date') or c.get('published_date') or c.get('accepted_date')) for c in scope)
+        return dict(candidates=len(scope),verified=len(verified),selected=sum(c['id'] in selected_ids for c in scope),
+                    date_evidence_completeness=dated/len(scope) if scope else None)
+    batch=metrics([c for c in pool if c['id'] in batch_ids],True)
+    batch.update(discovered=entry.get('discovered',0),merged=entry.get('merged',0))
+    daily_metrics=metrics([c for c in pool if c['id'] in day_ids],True)
+    # 当天可审核历史池内候选；独立统计，不受当天是否重新发现限制。
+    daily_metrics['verified']=sum(c.get('_candidate_state') in {'reviewed','recommended'} and c.get('reviewed_at','')[:10]==day for c in pool)
+    daily_metrics['selected']=sum(c['id'] in selected_ids for c in pool)
+    daily_metrics.update(discovered=sum(r.get('discovered',0) for r in daily),merged=sum(r.get('merged',0) for r in daily))
+    cumulative=metrics(pool)
+    cumulative.update(discovered=sum(r.get('discovered',0) for r in runs),merged=sum(r.get('merged',0) for r in runs),
+                      selected=sum(c.get('_candidate_state')=='recommended' for c in pool))
+    entry.update(batch_metrics=batch,daily_metrics=daily_metrics,cumulative_metrics=cumulative,
+                 verified=batch['verified'],selected=batch['selected'],date_evidence_completeness=batch['date_evidence_completeness'])
+
+
 def _compose(root, now, dry_run=False):
     from .__main__ import atomic_write, window_start
     from .site import queue_edition
@@ -601,12 +641,11 @@ def _compose(root, now, dry_run=False):
                 reason='已精选，等待发布与确认发送' if c['id'] in selected_ids else '明确不感兴趣' if actions.get(c['id'])=='disliked' else '历史事件／主题已推荐或评分低于65分' if c['id'] not in ranked_ids else '去重、主题／作者上限或排名未入选'
                 conn.execute('UPDATE candidates SET reason=? WHERE id=?',(reason,c['id']))
             for item in rejected:conn.execute('UPDATE candidates SET reason=? WHERE id=?',(item['reason'],item['id']))
+            metric_candidates=[dict(json.loads(raw),_candidate_state=state) for raw,state in conn.execute('SELECT data,state FROM candidates')]
             for entry in fresh:
                 sid=entry['id']
                 if entry['status']=='not_checked':continue
-                source_cards=[c for c in cards if sid in c.get('discovery_sources',[])]
-                discovered_cards=[json.loads(raw) for (raw,) in conn.execute('SELECT data FROM candidates') if sid in json.loads(raw).get('discovery_sources',[])]
-                entry.update(verified=len(source_cards),selected=sum(sid in c.get('discovery_sources',[]) for c in selected),date_evidence_completeness=sum(bool(c.get('date_evidence_url')) and bool(c.get('first_public_date') or c.get('published_date') or c.get('accepted_date')) for c in discovered_cards)/len(discovered_cards) if discovered_cards else None)
+                update_source_metrics(conn,entry,metric_candidates,selected,day)
                 rowid=conn.execute('SELECT max(id) FROM source_runs WHERE source_id=?',(sid,)).fetchone()[0]
                 conn.execute('UPDATE source_runs SET details=? WHERE id=?',(json.dumps(entry,ensure_ascii=False),rowid))
             if status!='failed' and selected:queue_edition(conn,day,data)
@@ -644,12 +683,31 @@ def health(root, now):
     warnings=['连续失败来源：'+s['id'] for s in recent if s['failures']>=3]
     warnings+=['微信发送结果待核对：'+day for day,_ in uncertain]
     deadline=now.replace(hour=10,minute=30,second=0,microsecond=0)+timedelta(minutes=cfg.get('runtime',{}).get('delivery_grace_minutes',120))
+    from .__main__ import timestamp
+    anchor=(now if now>=deadline else now-timedelta(days=1)).date()
+    state_map={s['id']:s for s in recent}
+    stale=[]
+    for source in registry(root):
+        state=state_map.get(source['id'])
+        if not state:continue  # 未检查来源单独列出。
+        required=anchor
+        cadence=source.get('cadence','daily')
+        if cadence=='rotating':
+            while required.toordinal()%3!=source['rotation_group']:required-=timedelta(days=1)
+        elif cadence=='twice_weekly':
+            while required.weekday() not in {1,4}:required-=timedelta(days=1)
+        elif cadence=='weekly':required-=timedelta(days=6)
+        checked=state['cursor'].get('content_checked_at') if source['adapter']=='browser' else state['checked_at']
+        try:expired=not checked or timestamp(checked).date()<required
+        except (ValueError,TypeError):expired=True
+        if expired:stale.append(dict(id=source['id'],last_content_check=checked,required_since=required.isoformat(),cadence=cadence))
+    warnings+=['来源检查逾期：'+s['id'] for s in stale]
     overdue=now>=deadline and last_sent!=now.date().isoformat()
     if overdue:warnings.append('当天日报尚未确认推送，已超过开始时间后的运行宽限；检查采集、Pages及微信阶段')
     warnings+=['页面发布失败：'+p['day'] for p in publications if p['stage']=='error' and p['day']==now.date().isoformat()]
     gaps=[{'id':s['id'],'status':s['status'],'note':s.get('note','')} for s in last_metrics if s['status']!='ok']
     return {'pipeline_version':2,'status':'partial' if warnings or gaps or uncollected else 'ok','observed_at':now.isoformat(),
-            'candidates':counts,'sources':recent,'uncollected_sources':uncollected,'source_gaps':gaps,
+            'candidates':counts,'sources':recent,'uncollected_sources':uncollected,'source_gaps':gaps,'stale_sources':stale,
             'latest_edition':last_edition,'latest_sent_edition':last_sent,'delivery_overdue':overdue,
             'source_metrics':last_metrics,'publication_stages':publications,'pending_editions':pending,
             'uncertain_deliveries':uncertain,'warnings':warnings,

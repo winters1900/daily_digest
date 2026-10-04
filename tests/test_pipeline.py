@@ -201,7 +201,7 @@ class PipelineTests(unittest.TestCase):
     def test_arxiv_snapshot_pagination_and_beijing_date(self):
         item=SimpleNamespace(id='https://arxiv.org/abs/2609.00001v2',title='Paper',published='2026-09-20T20:00:00Z',updated='2026-10-01T00:00:00Z',summary='Abstract')
         item.get=lambda key,default=None:default
-        fake=SimpleNamespace(bozo=False,entries=[item],feed={'opensearch_totalresults':300})
+        fake=SimpleNamespace(bozo=False,version='atom10',entries=[item],feed={'opensearch_totalresults':300})
         http=Mock();http.get.return_value.content=b'atom'
         source={'id':'discovery:arxiv','kind':'paper','url':'https://export.arxiv.org/api/query','categories':['cs.AI']}
         progress={'backfill_cursor':{'offset':100,'window_start':'202608040000','window_end':'202610032359','sort_order':'ascending'}}

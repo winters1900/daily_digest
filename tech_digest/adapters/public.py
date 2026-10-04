@@ -130,8 +130,12 @@ def arxiv(source,http,now,progress):
             response=http.get(source['url'],params={'search_query':query,'start':offset,'max_results':100,'sortBy':'submittedDate','sortOrder':order})
             http.sleep(3)
         feed=feedparser.parse(response.content)
-        if feed.bozo and not feed.entries:raise SourceError('arXiv Atom 无法解析')
-        total=int(feed.feed.get('opensearch_totalresults',len(feed.entries)))
+        if feed.bozo or getattr(feed,'version',None)!='atom10':
+            raise SourceError('arXiv 响应不是有效 Atom，未推进游标')
+        raw_total=feed.feed.get('opensearch_totalresults')
+        if raw_total is None or not re.fullmatch(r'\d+',str(raw_total)):
+            raise SourceError('arXiv 缺少有效分页总数，未推进游标')
+        total=int(raw_total)
         if not feed.entries and offset<total:raise SourceError('arXiv 分页为空但仍有未读取结果，保留游标等待重试')
         found=[]
         try:
