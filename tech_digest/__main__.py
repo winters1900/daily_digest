@@ -427,6 +427,9 @@ def main(argv=None):
     parser.add_argument('--collect', action='store_true', help='采集公开来源并保存候选及浏览器补查任务')
     parser.add_argument('--source', action='append', help='限定公开采集来源，可重复指定稳定 ID')
     parser.add_argument('--review-queue', action='store_true', help='输出 BM25 初筛后的待审核候选')
+    parser.add_argument('--quality-check', action='store_true', help='检查新版审核与图片证据，可配合 --input')
+    parser.add_argument('--trial', type=Path, help='独立图文试刊JSON，配合 --dry-run/--push')
+    parser.add_argument('--resolve-trial', nargs=2, metavar=('ID','DECISION'), help='人工核对试刊 sent/retry，须提供 --reason')
     parser.add_argument('--compose', action='store_true', help='按证据评分与分区配额生成日报')
     parser.add_argument('--dry-run', action='store_true', help='只预览精选，不生成或发送日报')
     parser.add_argument('--health', action='store_true', help='候选、覆盖进度与投递健康检查')
@@ -438,7 +441,31 @@ def main(argv=None):
     now = datetime.now(TZ)
     from . import pipeline
     try:
-        if args.collect:
+        if args.trial:
+            from .trial import run
+            result=run(ROOT,args.trial,now,push=args.push,dry_run=args.dry_run,notify=not args.no_notify)
+        elif args.resolve_trial:
+            from .trial import resolve
+            result=resolve(ROOT,*args.resolve_trial,args.reason,now)
+        elif args.quality_check:
+            from .quality import check
+            if args.input:
+                payload=json.loads(args.input.read_text());cards=payload.get('cards',payload.get('reviews',[]))
+                if 'reviews' in payload and 'cards' not in payload:
+                    enriched=[]
+                    with pipeline.connection(ROOT) as conn:
+                        for review in cards:
+                            row=conn.execute('SELECT data FROM candidates WHERE id=?',(review.get('id'),)).fetchone()
+                            if not row:raise ValueError('审核ID不存在：'+str(review.get('id')))
+                            card=json.loads(row[0]);card.update({k:v for k,v in review.items() if k not in {'id','source_id','kind','url','discovery_sources'}})
+                            card['published_label']=pipeline.content_date(card)
+                            enriched.append(card)
+                    cards=enriched
+            else:
+                with pipeline.connection(ROOT) as conn:
+                    cards=[json.loads(r[0]) for r in conn.execute("SELECT data FROM candidates WHERE state='reviewed'")]
+            result=check(cards,ROOT)
+        elif args.collect:
             from .adapters.public import collect
             result=collect(ROOT,now,only=args.source)
         elif args.review_queue:

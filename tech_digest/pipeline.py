@@ -116,7 +116,7 @@ def plan(root, now, all_sources=False):
             'selection':cfg['selection'],'topics':TOPIC_NAMES,
             'input_schema':{'observed_at':'本次带时区的时间','sources':'id/status/note/evidence_urls/coverage/window_months；可附 phase: identity/content、cursor、backfill_cursor、backfill_complete',
                             'items':'原始候选：kind/source_id/title/url/abstract/标识符/各事件日期；缺日期或评分也入库等待审核',
-                            'reviews':'id/summary/why/limitations/action/reading_depth/topic/quality_scores/review_evidence/date_evidence_url；论文另填 review_status/venue/track/verification_url/first_public_date；资讯另填 news_section/event_id，视频另填 transcript_url/transcript_excerpt'},
+                            'reviews':'id/review_version:3/problem/contribution/results/conditions/reading_advice/subtopic/claims/score_reasons/summary/why/limitations/action/reading_depth/topic/quality_scores/review_evidence/date_evidence_url；论文另填 review_status/venue/track/verification_url/first_public_date；资讯另填 news_section/event_id，视频另填 transcript_url/transcript_excerpt'},
             'commands':['--collect','--review-queue','--input state/tech/collection.json','--compose --dry-run','--compose --push','--health'],
             'cost_policy':'公开接口/RSS优先，Codex读取浏览器及原创摘要；不调用付费模型或抓取API'}
 
@@ -256,14 +256,17 @@ def content_date(card):
             from .__main__ import timestamp
             return timestamp(card['first_public_at']).date().isoformat()
         return _day(card.get('first_public_date'))
-    return _day(card.get('published_date') or card.get('accepted_date') or card.get('published_at'))
+    if card.get('published_at') or card.get('accepted_at'):
+        from .__main__ import timestamp
+        return timestamp(card.get('published_at') or card['accepted_at']).date().isoformat()
+    return _day(card.get('published_date') or card.get('accepted_date'))
 
 
 def validate_review(root, card, now):
     from .__main__ import window_start, https_url
     for field in ('summary','why','limitations','reading_depth','evidence_excerpt','date_evidence_url'):
         if not isinstance(card.get(field),str) or not card[field].strip(): raise ValueError('审核缺少 '+field)
-    if card['reading_depth'] not in {'摘要','正文','帖子','字幕','复现'}: raise ValueError('阅读深度无效')
+    if card['reading_depth'] not in {'摘要','关键章节','正文','帖子','字幕','复现'}: raise ValueError('阅读深度无效')
     if card.get('topic') not in TOPIC_NAMES: raise ValueError('缺少有效主题')
     if not isinstance(card.get('review_evidence'),list) or not card['review_evidence']:raise ValueError('缺少已读证据链接')
     for url in card['review_evidence']+[card['date_evidence_url']]: https_url(url)
@@ -324,6 +327,9 @@ def validate_review(root, card, now):
         card['author']=source['name'] if card['kind']=='x' else card.get('author') or source['name']
         card['organization']=bool(source.get('organization'))
         card['author_key']=source['id'] if card['kind']=='x' else card['author'].strip().casefold()
+    if card.get('review_version',1)>=3:
+        from .quality import validate
+        validate(card)
     return card
 
 
@@ -353,6 +359,9 @@ def ingest(root, payload, now):
             if row[1]=='recommended':continue
             card=json.loads(row[0]);card.update({k:v for k,v in raw.items() if k not in {'id','source_id','kind','url','discovery_sources'}})
             try:
+                if card.get('review_version',1)>=3:
+                    from .media import prepare
+                    prepare(root,card)
                 card=validate_review(root,card,now)
                 card['reviewed_at']=now.isoformat()
                 reviewed_count+=1
@@ -418,6 +427,8 @@ def review_queue(root, now):
     with connection(root) as conn:
         suggestions=[dict(left_id=r[0],right_id=r[1],similarity=r[2]) for r in conn.execute('SELECT * FROM merge_suggestions')]
         rows=[dict(json.loads(r[0]),pending_reason=r[1]) for r in conn.execute("SELECT data,reason FROM candidates WHERE state='pending'")]
+        if cfg['selection'].get('minimum_review_version',1)>=3:
+            rows += [dict(json.loads(raw),pending_reason='旧审核须补充新版结构与证据') for raw, in conn.execute("SELECT data FROM candidates WHERE state='reviewed'") if json.loads(raw).get('review_version',1)<3]
         eligible=[]
         for c in rows:
             known=c.get('published_date') or c.get('accepted_date') or (c.get('first_public_date') if c.get('review_status')=='preprint' else None)
@@ -447,7 +458,7 @@ def review_queue(root, now):
         exploration=sorted(ordered[limit-reserve:],key=lambda pair:(pair[0].get('first_public_date') or pair[0].get('published_date') or '',pair[0]['id']),reverse=True)[:reserve]
         groups[kind]=[dict(c,prefilter_score=round(score,3)) for c,score in ordered[:limit-reserve]+exploration]
     return {'pipeline_version':2,'observed_at':now.isoformat(),'queue':groups,'merge_suggestions':suggestions,
-            'instructions':'打开原文核验，再用 reviews 数组导入；不得把关键词匹配或元数据当作阅读完成。'}
+            'instructions':'使用 review_version:3；按 TECH_DIGEST.md 填结构化结论、条件、claims、score_reasons、subtopic。重点论文阅读方法、实验与限制并填 read_sections。不得把关键词或元数据当作阅读完成。'}
 
 
 def feedback(root, uid, action, reason, now):
@@ -506,7 +517,7 @@ def rank(root, conn, cards):
 
 def choose(root, cards):
     cfg=config(root)['selection'];cards=sorted(cards,key=lambda c:(-c.get('ranking_score',c.get('quality_score',0)),-heat(c),c['id']));papers=[c for c in cards if c['kind']=='paper'];news=[c for c in cards if c['kind']!='paper']
-    selected=[];ids=set();topics=Counter();themes=set();authors=Counter();ph=0
+    selected=[];ids=set();topics=Counter();subtopics=Counter();themes=set();authors=Counter();ph=0
     def add(c,section=None):
         nonlocal ph
         keys=dedup_keys(c)
@@ -514,7 +525,10 @@ def choose(root, cards):
         if c['kind']=='paper':
             if sum(s['kind']=='paper' for s in selected)>=cfg['paper_limit']:return False
             if topics[c['topic']]>=cfg['maximum_papers_per_topic']:return False
+            sub=c.get('subtopic')
+            if sub and subtopics[sub]>=cfg.get('maximum_papers_per_subtopic',3):return False
             topics[c['topic']]+=1
+            if sub:subtopics[sub]+=1
         else:
             if sum(s['kind']!='paper' for s in selected)>=cfg['news_limit']:return False
             author=c.get('author_key') or (c.get('author') or c['source_id']).strip().casefold()
@@ -609,10 +623,28 @@ def _compose(root, now, dry_run=False):
         fresh += [{'id':sid,'status':'not_checked','coverage':'unknown','note':'本次尚未读取来源，保留待检查'} for sid in sorted(missing)]
         cards=[]
         for uid,raw in conn.execute("SELECT id,data FROM candidates WHERE state='reviewed'").fetchall():
-            try:cards.append(validate_review(root,json.loads(raw),now))
+            try:
+                card=validate_review(root,json.loads(raw),now)
+                if cfg['selection'].get('minimum_review_version',1)>=3:
+                    from .quality import validate
+                    validate(card)
+                cards.append(card)
             except (ValueError,KeyError,TypeError) as exc:
                 rejected.append({'id':uid,'reason':str(exc)})
         ranked=rank(root,conn,cards);selected=choose(root,ranked)
+        modern=cfg['selection'].get('minimum_review_version',1)>=3
+        if modern:
+            from .quality import focus_cards,check
+            from .media import prepare
+            focus_ids={c['id'] for c in focus_cards(selected)}
+            for c in selected:
+                c['focus']=c['id'] in focus_ids
+                if not c['focus']:c.pop('figure',None)
+                prepare(root,c)
+                c['historical_backfill']=(now.date()-__import__('datetime').date.fromisoformat(content_date(c))).days>7
+            diagnostic=check(selected,root)
+            bad={e.get('id') for e in diagnostic['errors']}
+            selected=[c for c in selected if c['id'] not in bad]
         for c in selected:
             c['related_links']=[{'url':other['url'],'title':other['title']} for other in ranked
                                 if other['id']!=c['id'] and c.get('theme_id') and c.get('theme_id')==other.get('theme_id')]
@@ -627,8 +659,9 @@ def _compose(root, now, dry_run=False):
                 shortfalls.append(label+'本期核验入选 '+str(section_counts[section])+'/'+str(target)+'，缺额仅用其他已核验合格候选补位。')
         if counts['paper']<cfg['selection']['paper_limit']:shortfalls.append('论文合格候选、主题多样性与去重筛选后入选 %d/%d 篇；待审核和受限来源见采集说明。'%(counts['paper'],cfg['selection']['paper_limit']))
         if counts['news']<cfg['selection']['news_limit']:shortfalls.append('资讯精选 %d/%d 条，不以营销或重复内容补位。'%(counts['news'],cfg['selection']['news_limit']))
-        data={'pipeline_version':2,'day':day,'cards':selected,'sources':fresh,'status':status,'rejected':rejected,'shortfalls':shortfalls,
+        data={'pipeline_version':3 if modern else 2,'day':day,'cards':selected,'sources':fresh,'status':status,'rejected':rejected,'shortfalls':shortfalls,
               'windows':{k:{'start':window_start(now,2).date().isoformat(),'end':day} for k in ['paper','x','news']},'weekly_review':''}
+        if modern:data['quality']=check(selected,root)
         weekly=conn.execute("SELECT value FROM pipeline_meta WHERE key='weekly_review:'+?",(day,)).fetchone()
         if weekly:data['weekly_review']=weekly[0]
         result={'day':day,'status':status,'selected_items':len(selected),'counts':counts,'shortfalls':shortfalls,'rejected':rejected,'cards':selected,'delivery':'not_sent'}
@@ -675,12 +708,20 @@ def health(root, now):
         recent=[dict(id=r[0],checked_at=r[1],coverage=r[2],backfill_complete=bool(r[3]),failures=r[4],cursor=json.loads(r[5] or '{}'),backfill_cursor=json.loads(r[6] or '{}')) for r in conn.execute('SELECT id,checked_at,coverage,backfill_complete,failures,cursor,backfill_cursor FROM source_state')]
         pending=conn.execute('SELECT count(*) FROM web_editions WHERE sent_at IS NULL').fetchone()[0]
         last_edition=conn.execute('SELECT max(day) FROM web_editions').fetchone()[0]
+        quality_row=conn.execute('SELECT data FROM web_editions ORDER BY day DESC LIMIT 1').fetchone()
+        from .quality import check
+        quality_health=check(json.loads(quality_row[0])['cards'],root) if quality_row and json.loads(quality_row[0]).get('pipeline_version',1)>=3 else {'status':'legacy','metrics':{},'warnings':[{'reason':'最新正式日报仍使用旧审核格式'}]}
         last_sent=conn.execute('SELECT max(day) FROM web_editions WHERE sent_at IS NOT NULL').fetchone()[0]
         last_metrics=[json.loads(r[0]) for r in conn.execute('SELECT details FROM source_runs WHERE id IN (SELECT max(id) FROM source_runs GROUP BY source_id)')]
         uncertain=conn.execute("SELECT day,state FROM send_attempts WHERE state IN ('sending','uncertain')").fetchall()
         publications=[dict(day=r[0],stage=r[1],updated_at=r[2]) for r in conn.execute('SELECT * FROM publication_runs ORDER BY day DESC LIMIT 7')]
+    trials=[]
+    for path in sorted((root/'state/tech/trials').glob('*.json')):
+        state=json.loads(path.read_text());trials.append({'id':state['id'],'delivery':state.get('delivery'),'stage':state.get('stage'),'quality':state.get('data',{}).get('quality',{})})
     uncollected=sorted({s['id'] for s in registry(root)}-{s['id'] for s in recent})
-    warnings=['连续失败来源：'+s['id'] for s in recent if s['failures']>=3]
+    warnings=['最新日报质量检查存在阻断问题'] if quality_health.get('status')=='failed' else []
+    warnings+=['连续失败来源：'+s['id'] for s in recent if s['failures']>=3]
+    warnings+=['试刊微信结果待核对：'+t['id'] for t in trials if t['delivery'] in {'sending','uncertain'}]
     warnings+=['微信发送结果待核对：'+day for day,_ in uncertain]
     deadline=now.replace(hour=10,minute=30,second=0,microsecond=0)+timedelta(minutes=cfg.get('runtime',{}).get('delivery_grace_minutes',120))
     from .__main__ import timestamp
@@ -709,6 +750,6 @@ def health(root, now):
     return {'pipeline_version':2,'status':'partial' if warnings or gaps or uncollected else 'ok','observed_at':now.isoformat(),
             'candidates':counts,'sources':recent,'uncollected_sources':uncollected,'source_gaps':gaps,'stale_sources':stale,
             'latest_edition':last_edition,'latest_sent_edition':last_sent,'delivery_overdue':overdue,
-            'source_metrics':last_metrics,'publication_stages':publications,'pending_editions':pending,
+            'quality':quality_health,'trials':trials,'source_metrics':last_metrics,'publication_stages':publications,'pending_editions':pending,
             'uncertain_deliveries':uncertain,'warnings':warnings,
             'runtime':'本机Codex需运行、联网，X登录有效；10:30开始，不保证关机状态下采集'}

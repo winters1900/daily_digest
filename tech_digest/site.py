@@ -74,6 +74,9 @@ def card_html(c, related):
 
 
 def edition_html(data):
+    if data.get('pipeline_version') == 3:
+        from .presentation import edition_html as modern_html
+        return modern_html(data)
     if data.get('pipeline_version') == 2: return edition_v2_html(data)
     day = data['day']
     cards = data['cards']
@@ -167,20 +170,28 @@ def build_site(root, directory=None):
     directory = directory or root / 'docs'
     with database(root) as conn:
         init_editions(conn)
-        editions = [json.loads(row[0]) for row in conn.execute('SELECT data FROM web_editions ORDER BY day DESC')]
+        rows=list(conn.execute('SELECT data,sent_at FROM web_editions ORDER BY day DESC'))
+        editions = [json.loads(row[0]) for row in rows]
+        frozen={json.loads(raw)['day'] for raw,sent in rows if sent}
     if not editions: raise ValueError('没有已存档的日报内容')
     paths = []
     for data in editions:
         filename = data['day'] + '.html'
-        atomic_write(directory / filename, edition_html(data))
+        if data['day'] not in frozen or not (directory/filename).exists():
+            atomic_write(directory / filename, edition_html(data))
+        if data.get('pipeline_version')==3:
+            from .media import public_assets
+            paths.extend(public_assets(root,data['cards'],directory))
         paths.append('docs/' + filename)
-    atomic_write(directory / 'latest.html', edition_html(editions[0]))
+    atomic_write(directory / 'latest.html', (directory/(editions[0]['day']+'.html')).read_text())
     archive = '<div class="masthead"><div class="date">ARCHIVE</div><h1>日报归档</h1></div><div class="archive">'
     for data in editions:
         titles = ' / '.join(c['title'] for c in data['cards'][:3])
         archive += '<a href="' + esc(data['day']) + '.html"><time>' + esc(data['day']) + '</time><h2>技术日报</h2><p>' + esc(titles or '采集记录') + '</p></a>'
-    archive += '</div>'
+    archive += '</div>'+trial_archive(directory)
     atomic_write(directory / 'index.html', shell('日报归档', archive))
+    atomic_write(directory / 'assets/digest-v3.css', (Path(__file__).parent/'web/digest.css').read_text()+'\n'+(Path(__file__).parent/'web/quality.css').read_text())
+    paths.append('docs/assets/digest-v3.css')
     atomic_write(directory / 'assets/digest.css', (Path(__file__).parent / 'web/digest.css').read_text())
     for source in sorted((Path(__file__).parent / 'web/fonts').glob('*')):
         if not source.is_file(): continue
@@ -190,6 +201,14 @@ def build_site(root, directory=None):
         paths.append('docs/assets/fonts/' + source.name)
     atomic_write(directory / '.nojekyll', '')
     return paths + ['docs/index.html','docs/latest.html','docs/assets/digest.css','docs/.nojekyll']
+
+
+def trial_archive(directory):
+    entries=[]
+    for path in sorted(directory.glob('quality-trial-*.html'),reverse=True):
+        if not re.fullmatch(r'quality-trial-\d{4}-\d{2}-\d{2}-\d{6}\.html',path.name):continue
+        entries.append('<a href="'+esc(path.name)+'"><time>'+esc(path.name[14:24])+'</time><h2>图文优化试刊</h2></a>')
+    return '<section id="trials"><h2>独立试刊</h2><div class="archive">'+''.join(entries)+'</div></section>' if entries else ''
 
 
 def settings(root):
@@ -271,13 +290,17 @@ def _publish_pending(root, now, day=None, notify=True):
     git(root, ['push','origin','main'])
     publication_phase(root,day,'github_pushed',now)
     url = cfg['base_url'].rstrip('/') + '/' + day + '.html'
-    revision = re.search(r'name="digest-revision" content="([a-f0-9]+)"', edition_html(json.loads(raw)))[1]
+    revision = re.search(r'name="digest-revision" content="([a-f0-9]+)"', (root/'docs'/(day+'.html')).read_text())[1]
     deadline = time.monotonic() + cfg.get('wait_seconds',180)
     while True:
         try:
             response = requests.get(url, timeout=15, headers={'Cache-Control':'no-cache'})
             ready = response.status_code == 200 and ('content="' + revision + '"') in response.text
         except requests.RequestException: ready = False
+        if ready and data.get('pipeline_version')==3:
+            from .media import remote_ready
+            try:ready=remote_ready(cfg['base_url'],data['cards'])
+            except requests.RequestException:ready=False
         if ready: break
         if time.monotonic() >= deadline: raise RuntimeError('HTML已推送到GitHub，网页尚未发布；可用 --publish 重试，不发送无效链接')
         time.sleep(5)
@@ -300,7 +323,7 @@ def _publish_pending(root, now, day=None, notify=True):
         if sent:
             conn.execute("INSERT OR REPLACE INTO send_attempts VALUES (?,'sent',?,NULL)",(day,sent))
             conn.execute("UPDATE deliveries SET status='sent',content='',sent_at=?,error=NULL WHERE day=?", (sent,day))
-            if data.get('pipeline_version')==2:
+            if data.get('pipeline_version') in {2,3}:
                 mark_recommended(conn,day,data['cards'])
     status = {'delivery':'sent' if sent else 'published','day':day,'url':url}
     p = root / 'state/tech/last_run.json'

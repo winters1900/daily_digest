@@ -298,7 +298,13 @@ def youtube(source,http,now,progress):
     return result,meta
 
 
-ADAPTERS={'rss':rss,'arxiv':arxiv,'hf':hf,'hn':hn,'conference':page,'page':page,'trending':trending,'github_org':github_org,'youtube':youtube}
+def conference(source,http,now,progress):
+    if source['id'] not in {'paper:icml','paper:iclr','paper:tmlr','paper:cvpr','paper:eccv'}:
+        return page(source,http,now,progress)
+    from .official import conference as scan
+    return scan(source,http,now,progress)
+
+ADAPTERS={'rss':rss,'arxiv':arxiv,'hf':hf,'hn':hn,'conference':conference,'page':page,'trending':trending,'github_org':github_org,'youtube':youtube}
 
 
 def collect(root,now,only=None):

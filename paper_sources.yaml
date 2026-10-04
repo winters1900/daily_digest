@@ -90,7 +90,7 @@ sources:
   - TMLR
   type: journal
   priority: supplement
-  url: https://jmlr.org/tmlr/
+  url: https://jmlr.org/tmlr/papers/
   verification: 补充同行评审来源，核验正式接受状态，不笼统标记为顶刊
   id: paper:tmlr
   legacy_ids:
