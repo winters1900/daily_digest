@@ -247,7 +247,8 @@ def page(source,http,now,progress):
     for path,title in parsed.links:
         url=urljoin(source['url'],path)
         if urlparse(url).hostname!=host or url in seen or not title or len(title)<12:continue
-        if not url.startswith('https://') or url==source['url']:continue
+        if not url.startswith('https://') or pipeline.canonical_url(url).rstrip('/')==pipeline.canonical_url(source['url']).rstrip('/'):continue
+        if re.search(r'^(skip to|call for papers|submission format|proceedings specification|editorial board|editorial policies|contributions$)',title,re.I):continue
         if source['kind']=='paper':
             if not re.search(r'(paper|forum|abstract|html|s42256|volume|v\d+/|\.php)',url,re.I):continue
         else:

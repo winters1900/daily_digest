@@ -131,10 +131,10 @@ class PipelineTests(unittest.TestCase):
         for i in range(20):
             cards.append(dict(id=str(i),kind='news',source_id='news:producthunt' if i<3 else 'news:hn',author='A' if i<6 else str(i),event_id='same' if i in {7,8} else str(i),topic='systems',ranking_score=100-i))
         selected=p.choose(self.root,cards)
-        self.assertEqual(len(selected),8)
+        self.assertEqual(len(selected),10)
         self.assertLessEqual(sum(c['source_id']=='news:producthunt' for c in selected),1)
         self.assertLessEqual(sum(c['author']=='A' for c in selected),2)
-        self.assertEqual(len({c['event_id'] for c in selected}),8)
+        self.assertEqual(len({c['event_id'] for c in selected}),10)
 
     def test_dislike_excludes_read_is_not_negative(self):
         a=self.insert_reviewed(1);b=self.insert_reviewed(2,'vision')

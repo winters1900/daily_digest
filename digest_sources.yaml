@@ -10,7 +10,7 @@ topics:
   systems: [inference, serving, training, gpu, retrieval, database, evaluation, benchmark, optimization, 系统, 训练, 检索, 评估]
 selection:
   paper_limit: 10
-  news_limit: 8
+  news_limit: 10
   review_paper_limit: 50
   review_news_limit: 40
   minimum_score: 65
@@ -30,7 +30,7 @@ sources:
   - {id: news:microsoft, name: Microsoft Research, kind: news, adapter: rss, cadence: daily, url: 'https://www.microsoft.com/en-us/research/feed/'}
   - {id: news:nvidia, name: NVIDIA, kind: news, adapter: rss, cadence: daily, url: 'https://developer.nvidia.com/blog/feed/'}
   - {id: news:huggingface, name: Hugging Face, kind: news, adapter: rss, cadence: daily, url: 'https://huggingface.co/blog/feed.xml'}
-  - {id: news:qwen, name: Qwen, kind: news, adapter: page, cadence: daily, url: 'https://qwenlm.github.io/blog/'}
+  - {id: news:qwen, name: Qwen, kind: news, adapter: browser, cadence: daily, url: 'https://qwen.ai/research'}
   - {id: news:deepseek, name: DeepSeek, kind: news, adapter: github_org, cadence: daily, url: 'https://api.github.com/orgs/deepseek-ai/repos'}
   - {id: news:hn, name: Hacker News, kind: news, adapter: hn, cadence: daily, url: 'https://hacker-news.firebaseio.com/v0/topstories.json'}
   - {id: reddit:machinelearning, name: r/MachineLearning, kind: news, adapter: rss, cadence: daily, url: 'https://www.reddit.com/r/MachineLearning/new.rss'}
