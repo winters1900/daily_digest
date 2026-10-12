@@ -45,6 +45,70 @@ def shell(title, body, revision=''):
 <main>''' + body + '''</main><footer><span>技术日报</span><a href="index.html">查看全部日报 →</a></footer></body></html>'''
 
 
+def janus_shell(title, body, revision=''):
+    """Janus Client 风格页面外壳：奶油底、衬线标题、滚动 Logo 收缩、黑底页脚。"""
+    style_version = hashlib.sha256((Path(__file__).parent / 'web/janus.css').read_bytes()).hexdigest()[:12]
+    return '''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="digest-revision" content="''' + esc(revision) + '''">
+<title>''' + esc(title) + '''</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23D97757'/><text x='50' y='68' font-size='52' font-family='serif' fill='white' text-anchor='middle'>J</text></svg>">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500;6..72,600;6..72,700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="assets/janus.css?v=''' + style_version + '''">
+</head>
+<body>
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">
+      <span class="ch ch-j">J</span><span class="ch ch-anus">anus</span><span class="ch ch-space">&nbsp;</span><span class="ch ch-c">C</span><span class="ch ch-lient">lient</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="index.html">归档</a></li>
+      <li><a href="themes.html">主题</a></li>
+    </ul>
+  </div>
+</nav>
+''' + body + '''
+<footer class="footer">
+  <div class="footer-inner">
+    <p>&copy; 2026 Janus Client</p>
+    <div class="footer-links">
+      <a href="index.html">历史归档</a>
+      <a href="themes.html">主题回看</a>
+    </div>
+  </div>
+</footer>
+<script>
+let logoMeasured = false;
+function measureLogo() {
+  if (logoMeasured) return;
+  document.querySelectorAll('.nav-logo .ch').forEach(function(el) { el.style.width = el.offsetWidth + 'px'; });
+  logoMeasured = true;
+}
+var observer = new IntersectionObserver(function(entries) {
+  entries.forEach(function(e) { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.05 });
+document.querySelectorAll('.paper, h2, .hero-stats').forEach(function(el) {
+  el.classList.add('reveal'); observer.observe(el);
+});
+var tocLinks = document.querySelectorAll('.toc a');
+var sections = document.querySelectorAll('h2[id]');
+var nav = document.querySelector('.nav');
+window.addEventListener('scroll', function() {
+  if (window.scrollY > 40) measureLogo();
+  nav.classList.toggle('scrolled', window.scrollY > 40);
+  var current = '';
+  sections.forEach(function(s) { if (s.getBoundingClientRect().top < 140) current = s.id; });
+  tocLinks.forEach(function(l) { l.classList.toggle('active', l.getAttribute('href') === '#' + current); });
+});
+</script>
+</body>
+</html>'''
+
+
 def card_html(c, related):
     paper = c['kind'] == 'paper'
     category = c.get('venue', '论文') if paper else ('机构发布' if c.get('organization') else c.get('content_type', '技术分享'))
@@ -197,6 +261,8 @@ def build_site(root, directory=None):
     atomic_write(directory / 'assets/digest-v3.css', (Path(__file__).parent/'web/digest.css').read_text()+'\n'+(Path(__file__).parent/'web/quality.css').read_text())
     paths.append('docs/assets/digest-v3.css')
     atomic_write(directory / 'assets/digest.css', (Path(__file__).parent / 'web/digest.css').read_text())
+    atomic_write(directory / 'assets/janus.css', (Path(__file__).parent / 'web/janus.css').read_text())
+    paths.append('docs/assets/janus.css')
     for source in sorted((Path(__file__).parent / 'web/fonts').glob('*')):
         if not source.is_file(): continue
         destination = directory / 'assets/fonts' / source.name
