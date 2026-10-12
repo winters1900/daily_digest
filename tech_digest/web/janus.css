@@ -47,12 +47,21 @@ body {
 .nav.scrolled .ch-anus, .nav.scrolled .ch-lient, .nav.scrolled .ch-space {
   opacity: 0; width: 0 !important;
 }
-.nav-links { display: flex; gap: 28px; list-style: none; }
-.nav-links a {
-  font-size: 14px; color: var(--text-secondary); text-decoration: none;
-  transition: color 0.2s; font-weight: 400;
+.nav-logo-wrap { position: relative; }
+.dropdown-menu {
+  position: absolute; top: calc(100% + 8px); left: -8px;
+  background: #fff; border: 1px solid var(--border); border-radius: 10px;
+  padding: 6px; min-width: 160px; z-index: 200;
+  opacity: 0; visibility: hidden; transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
 }
-.nav-links a:hover { color: var(--text); }
+.dropdown-menu.open { opacity: 1; visibility: visible; transform: translateY(0); }
+.dropdown-menu a {
+  display: block; padding: 8px 12px; font-size: 14px; color: var(--text-secondary);
+  text-decoration: none; border-radius: 6px; transition: background 0.15s, color 0.15s;
+}
+.dropdown-menu a:hover { background: var(--bg); color: var(--text); }
 
 /* Hero */
 .hero {
@@ -233,9 +242,8 @@ body {
 ::selection { background: var(--accent-soft); color: var(--text); }
 
 @media (max-width: 640px) {
-  .hero { padding: 56px 20px 40px; }
+  .hero { padding: 28px 20px 40px; }
   .article { padding: 0 20px 56px; }
-  .nav-links { display: none; }
   .hero-stats { gap: 24px; }
   .article h2 { font-size: 22px; margin-top: 48px; }
 }

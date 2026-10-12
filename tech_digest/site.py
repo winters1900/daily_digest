@@ -45,8 +45,11 @@ def shell(title, body, revision=''):
 <main>''' + body + '''</main><footer><span>技术日报</span><a href="index.html">查看全部日报 →</a></footer></body></html>'''
 
 
-def janus_shell(title, body, revision=''):
+def janus_shell(title, body, revision='', nav_links=None):
     """Janus Client 风格页面外壳：奶油底、衬线标题、滚动 Logo 收缩、黑底页脚。"""
+    if nav_links is None:
+        nav_links = [('index.html', '归档'), ('themes.html', '主题')]
+    dropdown_items = ''.join('<a href="' + esc(href) + '">' + esc(label) + '</a>' for href, label in nav_links)
     style_version = hashlib.sha256((Path(__file__).parent / 'web/janus.css').read_bytes()).hexdigest()[:12]
     return '''<!DOCTYPE html>
 <html lang="zh-CN">
@@ -62,13 +65,14 @@ def janus_shell(title, body, revision=''):
 <body>
 <nav class="nav">
   <div class="nav-inner">
-    <a href="index.html" class="nav-logo">
-      <span class="ch ch-j">J</span><span class="ch ch-anus">anus</span><span class="ch ch-space">&nbsp;</span><span class="ch ch-c">C</span><span class="ch ch-lient">lient</span>
-    </a>
-    <ul class="nav-links">
-      <li><a href="index.html">归档</a></li>
-      <li><a href="themes.html">主题</a></li>
-    </ul>
+    <div class="nav-logo-wrap">
+      <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;" class="nav-logo" id="navLogoBtn">
+        <span class="ch ch-j">J</span><span class="ch ch-anus">anus</span><span class="ch ch-space">&nbsp;</span><span class="ch ch-c">C</span><span class="ch ch-lient">lient</span>
+      </a>
+      <div class="dropdown-menu" id="navDropdown">
+        ''' + dropdown_items + '''
+      </div>
+    </div>
   </div>
 </nav>
 ''' + body + '''
@@ -104,6 +108,11 @@ window.addEventListener('scroll', function() {
   sections.forEach(function(s) { if (s.getBoundingClientRect().top < 140) current = s.id; });
   tocLinks.forEach(function(l) { l.classList.toggle('active', l.getAttribute('href') === '#' + current); });
 });
+var logoBtn = document.getElementById('navLogoBtn');
+var dropdown = document.getElementById('navDropdown');
+logoBtn.addEventListener('click', function(e) { e.preventDefault(); dropdown.classList.toggle('open'); });
+document.addEventListener('click', function(e) { if (!e.target.closest('.nav-logo-wrap')) dropdown.classList.remove('open'); });
+dropdown.querySelectorAll('a').forEach(function(a) { a.addEventListener('click', function() { dropdown.classList.remove('open'); }); });
 </script>
 </body>
 </html>'''

@@ -166,4 +166,5 @@ def edition_html(data):
     # shell with revision
     style = (Path(__file__).parent / 'web/janus.css').read_bytes()
     revision = hashlib.sha256(json.dumps(data, sort_keys=True, ensure_ascii=False).encode() + style + Path(__file__).read_bytes()).hexdigest()
-    return site.janus_shell(title + ' · ' + data['day'], body, revision)
+    nav_links = [('#' + a, t) for a, t, _ in sections] + [('index.html', '归档')]
+    return site.janus_shell(title + ' · ' + data['day'], body, revision, nav_links=nav_links)

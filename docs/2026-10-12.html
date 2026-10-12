@@ -58,16 +58,25 @@
   .nav.scrolled .ch-anus, .nav.scrolled .ch-lient, .nav.scrolled .ch-space {
     opacity: 0; width: 0 !important;
   }
-  .nav-links { display: flex; gap: 28px; list-style: none; }
-  .nav-links a {
-    font-size: 14px; color: var(--text-secondary); text-decoration: none;
-    transition: color 0.2s; font-weight: 400;
+  .nav-logo-wrap { position: relative; }
+  .dropdown-menu {
+    position: absolute; top: calc(100% + 8px); left: -8px;
+    background: #fff; border: 1px solid var(--border); border-radius: 10px;
+    padding: 6px; min-width: 160px; z-index: 200;
+    opacity: 0; visibility: hidden; transform: translateY(-6px);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
   }
-  .nav-links a:hover { color: var(--text); }
+  .dropdown-menu.open { opacity: 1; visibility: visible; transform: translateY(0); }
+  .dropdown-menu a {
+    display: block; padding: 8px 12px; font-size: 14px; color: var(--text-secondary);
+    text-decoration: none; border-radius: 6px; transition: background 0.15s, color 0.15s;
+  }
+  .dropdown-menu a:hover { background: var(--bg); color: var(--text); }
 
   /* Hero */
   .hero {
-    max-width: var(--max-width-wide); margin: 0 auto; padding: 80px 24px 48px;
+    max-width: var(--max-width-wide); margin: 0 auto; padding: 40px 24px 48px;
   }
   .hero-meta {
     display: flex; align-items: center; gap: 12px; margin-bottom: 28px;
@@ -204,9 +213,8 @@
   ::selection { background: var(--accent-soft); color: var(--text); }
 
   @media (max-width: 640px) {
-    .hero { padding: 56px 20px 40px; }
+    .hero { padding: 28px 20px 40px; }
     .article { padding: 0 20px 56px; }
-    .nav-links { display: none; }
     .hero-stats { gap: 24px; }
     .article h2 { font-size: 22px; margin-top: 48px; }
   }
@@ -216,15 +224,17 @@
 
 <nav class="nav">
   <div class="nav-inner">
-    <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;" class="nav-logo">
-      <span class="ch ch-j">J</span><span class="ch ch-anus">anus</span><span class="ch ch-space">&nbsp;</span><span class="ch ch-c">C</span><span class="ch ch-lient">lient</span>
-    </a>
-    <ul class="nav-links">
-      <li><a href="#arxiv">arXiv 前沿</a></li>
-      <li><a href="#engineering">工程实践</a></li>
-      <li><a href="#deep-dive">深度解读</a></li>
-      <li><a href="index.html">归档</a></li>
-    </ul>
+    <div class="nav-logo-wrap">
+      <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;" class="nav-logo" id="navLogoBtn">
+        <span class="ch ch-j">J</span><span class="ch ch-anus">anus</span><span class="ch ch-space">&nbsp;</span><span class="ch ch-c">C</span><span class="ch ch-lient">lient</span>
+      </a>
+      <div class="dropdown-menu" id="navDropdown">
+        <a href="#arxiv">arXiv 前沿</a>
+        <a href="#engineering">工程实践</a>
+        <a href="#deep-dive">深度解读</a>
+        <a href="index.html">归档</a>
+      </div>
+    </div>
   </div>
 </nav>
 
@@ -469,6 +479,20 @@
     let current = '';
     sections.forEach(s => { if (s.getBoundingClientRect().top < 140) current = s.id; });
     tocLinks.forEach(l => { l.classList.toggle('active', l.getAttribute('href') === '#' + current); });
+  });
+
+  // dropdown menu
+  const logoBtn = document.getElementById('navLogoBtn');
+  const dropdown = document.getElementById('navDropdown');
+  logoBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    dropdown.classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.nav-logo-wrap')) dropdown.classList.remove('open');
+  });
+  dropdown.querySelectorAll('a').forEach(a => {
+    a.addEventListener('click', () => dropdown.classList.remove('open'));
   });
 </script>
 </body>
