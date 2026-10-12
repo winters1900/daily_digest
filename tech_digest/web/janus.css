@@ -56,7 +56,7 @@ body {
 
 /* Hero */
 .hero {
-  max-width: var(--max-width-wide); margin: 0 auto; padding: 80px 24px 48px;
+  max-width: var(--max-width-wide); margin: 0 auto; padding: 40px 24px 48px;
 }
 .hero-meta {
   display: flex; align-items: center; gap: 12px; margin-bottom: 28px;

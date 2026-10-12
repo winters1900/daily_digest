@@ -250,9 +250,9 @@
 <h2 id="arxiv">arXiv 前沿</h2>
 <div class="paper">
   
-  <div class="paper-tags">reinforcement learning · LLM agents · rollout intervention</div>
   <h3><a href="https://arxiv.org/abs/2610.13438v1" target="_blank" rel="noopener">Rollout-Time Intervention：突破策略边界的 Agentic 强化学习</a></h3>
   <div class="paper-date">2026-10-09</div>
+  <div class="paper-field"><div class="field-label">Keywords</div><p>reinforcement learning · LLM agents · rollout intervention</p></div>
   <div class="paper-field"><div class="field-label">研究问题</div><p>现有 agent RL 受 on-policy 推理瓶颈约束：任务超出模型当前能力边界时有效轨迹极其稀疏，训练常崩溃。</p></div>
   <div class="paper-field"><div class="field-label">核心贡献</div><p>RTI 利用 reward 侧证据（评估 rubric）在 rollout 期间将错误轨迹转化为成功轨迹，为策略很少独立解决的任务提供有效学习信号；过滤分布偏移过大的干预轨迹后引导策略优化。</p></div>
   <div class="paper-field"><div class="field-label">结果与条件</div><p>五个基准上 RTI 一致优于 RL 基线，使后训练策略逼近更强当代 LLM 并超越原始能力边界。</p></div>
@@ -264,9 +264,9 @@
 
 <div class="paper">
   
-  <div class="paper-tags">diffusion language model · tool-use agent · chemistry reasoning</div>
   <h3><a href="https://arxiv.org/abs/2610.13330v1" target="_blank" rel="noopener">ChemDiffAgent：工具集成化学推理的掩码扩散语言智能体</a></h3>
   <div class="paper-date">2026-10-09</div>
+  <div class="paper-field"><div class="field-label">Keywords</div><p>diffusion language model · tool-use agent · chemistry reasoning</p></div>
   <div class="paper-field"><div class="field-label">研究问题</div><p>工具集成化学推理智能体多基于自回归范式，受因果注意力与从左到右生成约束，难做双向分子理解、全局工具规划与多源证据整合。</p></div>
   <div class="paper-field"><div class="field-label">核心贡献</div><p>首个掩码扩散语言智能体：将化学推理重构为推理与工具使用轨迹交错上的迭代去噪，全轨迹上下文联合决定工具使用；两阶段后训练（agentic SFT + 方差缩减偏好优化）；构建覆盖六化学任务的单/多轮工具使用基准。</p></div>
   <div class="paper-field"><div class="field-label">结果与条件</div><p>匹配预算与评估下一致优于自回归智能体，整体提升约 20%；8B 模型性能媲美甚至超过 GPT 5.5 与 Claude Opus 4.7 等更大前沿模型。</p></div>
@@ -278,9 +278,9 @@
 
 <div class="paper">
   
-  <div class="paper-tags">world action model · driving · reinforcement learning · 3D gaussian splatting</div>
   <h3><a href="https://arxiv.org/abs/2610.13781v1" target="_blank" rel="noopener">SimVTA：仿真锚定的视频-轨迹对齐用于驾驶世界动作模型</a></h3>
   <div class="paper-date">2026-10-10</div>
+  <div class="paper-field"><div class="field-label">Keywords</div><p>world action model · driving · reinforcement learning · 3D gaussian splatting</p></div>
   <div class="paper-field"><div class="field-label">研究问题</div><p>驾驶世界动作模型（WAM）从配对轨迹与未来观测学习，但驾驶日志只含记录轨迹的未来视频，强化学习探索的替代轨迹缺乏对应视觉监督。</p></div>
   <div class="paper-field"><div class="field-label">核心贡献</div><p>仿真锚定后训练框架：对每个观测采样候选轨迹，用真实世界模拟器（World Engine）在 3DGS 重建场景渲染高奖励候选的未来视频；有限渲染预算下优先给高误差未来分配视频监督；GRPO 优化轨迹规划，flow-matching 损失更新共享表示。推理时无模拟器调用。</p></div>
   <div class="paper-field"><div class="field-label">结果与条件</div><p>NAVSIM v1 上 PDMS 从 86.2 提升至 91.3（+5.1）；NAVSIM v2 达 88.2 EPDMS，HUGSIM 闭环评估平均 HD-Score 38.8。</p></div>
@@ -292,9 +292,9 @@
 
 <div class="paper">
   
-  <div class="paper-tags">diffusion models · reinforcement learning · reward optimization</div>
   <h3><a href="https://arxiv.org/abs/2610.12572v1" target="_blank" rel="noopener">DiffusionART：高效、稳定、可扩展的扩散模型强化</a></h3>
   <div class="paper-date">2026-10-09</div>
+  <div class="paper-field"><div class="field-label">Keywords</div><p>diffusion models · reinforcement learning · reward optimization</p></div>
   <div class="paper-field"><div class="field-label">研究问题</div><p>在线 RL 微调扩散模型受黑盒奖励约束：Flow-GRPO 等逆过程方法受差信用分配限制效率，DiffusionNFT 等正过程方法高效但依赖精心调参的 EMA off-policy 训练才稳定。</p></div>
   <div class="paper-field"><div class="field-label">核心贡献</div><p>揭示 NFT 风格目标含隐藏的正向-反向一致性力；DiffusionART 将每提示奖励聚合为共享奖励提升方向，构造上消除一致性力，加 trust-region 掩码二次更新实现漂移自适应恢复且无需 EMA 调参；支持成对奖励模型。</p></div>
   <div class="paper-field"><div class="field-label">结果与条件</div><p>HunyuanVideo-13B 上，达到 DiffusionNFT 与 Flow-GRPO-Fast 晚期平均奖励水平分别少用 12.02 与 11.72 倍 GPU 小时，同时平均训练奖励高 28.8% 与 53.0%。</p></div>
@@ -306,9 +306,9 @@
 
 <div class="paper">
   
-  <div class="paper-tags">robot learning · action regression · flow matching · student-t</div>
   <h3><a href="https://arxiv.org/abs/2610.12231v1" target="_blank" rel="noopener">残差建模弥合机器人学习回归与生成策略差距</a></h3>
   <div class="paper-date">2026-10-09</div>
+  <div class="paper-field"><div class="field-label">Keywords</div><p>robot learning · action regression · flow matching · student-t</p></div>
   <div class="paper-field"><div class="field-label">研究问题</div><p>流匹配/扩散策略常优于 MSE 直接动作回归，差距通常归因于多模态演示；从统计建模视角，动作预测残差形态塑造策略优化，MSE 梯度过度偏向大残差观测损害优化。</p></div>
   <div class="paper-field"><div class="field-label">核心贡献</div><p>分析真实机器人演示数据：残差尺度随状态显著变化且重尾。提出异方差 Student-t 动作回归（HT-Policies）：学习输入相关残差尺度并降低重尾影响；单前馈预测动作块，可复用预训练流匹配策略骨干。</p></div>
   <div class="paper-field"><div class="field-label">结果与条件</div><p>四个仿真基准 + 真实机器人评估上，HT-Policies 成功率与生成策略基线相当（从零训练与预训练 VLA/WAM 微调），训练与推理更快。</p></div>
@@ -320,9 +320,9 @@
 
 <div class="paper">
   
-  <div class="paper-tags">speculative decoding · KV cache · reinforcement learning · sparse attention</div>
   <h3><a href="https://arxiv.org/abs/2610.13202v1" target="_blank" rel="noopener">S3R：基于自稀疏投机解码的快速忠实 RL Rollout</a></h3>
   <div class="paper-date">2026-10-09</div>
+  <div class="paper-field"><div class="field-label">Keywords</div><p>speculative decoding · KV cache · reinforcement learning · sparse attention</p></div>
   <div class="paper-field"><div class="field-label">研究问题</div><p>长上下文 RLVR 快速 rollout 需减少 KV 缓存流量但不改变策略优化所用的响应组；直接稀疏采样会改变响应组分布，逐响应精确重加权也无法恢复期望稠密策略更新。</p></div>
   <div class="paper-field"><div class="field-label">核心贡献</div><p>S3R 用稀疏注意力提议 token，全注意力验证 + 精确投机采样生成响应；草稿与验证共享同一策略参数，无需独立草稿模型；KV 感知调度器限制重复卸载/恢复。</p></div>
   <div class="paper-field"><div class="field-label">结果与条件</div><p>长上下文数学推理上，S3R 使 Qwen3 模型端到端训练吞吐达自回归 rollout 的 1.39 倍，任务性能相当；稀疏草稿预算下稳定训练而直接稀疏采样不稳定。</p></div>
@@ -334,9 +334,9 @@
 
 <div class="paper">
   
-  <div class="paper-tags">vision-language-action · robot foundation model · autoregressive</div>
   <h3><a href="https://arxiv.org/abs/2608.11739v1" target="_blank" rel="noopener">G0.5：单一自回归流实现机器人推理与动作</a></h3>
   <div class="paper-date">2026-08-12 · 历史补查首次推荐</div>
+  <div class="paper-field"><div class="field-label">Keywords</div><p>vision-language-action · robot foundation model · autoregressive</p></div>
   <div class="paper-field"><div class="field-label">研究问题</div><p>主流 VLA 配方耦合预训练 VLM 与独立训练的流匹配动作专家，使 VLM 沦为上下文编码器而非决策者。</p></div>
   <div class="paper-field"><div class="field-label">核心贡献</div><p>预训练自回归 VLA：单 transformer 解码器单目标同时发射推理与动作 token；可学习跨本体动作 tokenizer、原生思维链流（任务分解/物体接地/动作提示与动作 token 交错）、视觉记忆模块注入多秒历史。</p></div>
   <div class="paper-field"><div class="field-label">结果与条件</div><p>预训练后 7 个独立体系超 SOTA：R1lite/R1pro 真实微调 76.7%（vs π0.5 的 53.3%）、2025 BEHAVIOR 挑战 50 长时任务 31.4%（vs 26.3%）、DROID 后训练零样本迁移 82.5%、LIBERO 98.9%、RoboTwin 2.0 93.3%、SimplerEnv-Bridge 87.3%。</p></div>
@@ -348,9 +348,9 @@
 
 <div class="paper">
   
-  <div class="paper-tags">audio-visual · temporal grounding · multimodal LLM · reinforcement learning</div>
   <h3><a href="https://arxiv.org/abs/2610.09408v1" target="_blank" rel="noopener">TiTok：多段时间定位的视听 LLM</a></h3>
   <div class="paper-date">2026-10-07</div>
+  <div class="paper-field"><div class="field-label">Keywords</div><p>audio-visual · temporal grounding · multimodal LLM · reinforcement learning</p></div>
   <div class="paper-field"><div class="field-label">研究问题</div><p>未剪辑视频中的视听多段定位（AV-MSG）需融合视听证据并预测查询对应多段，视觉模型忽略声学线索，视听模型常无法校准事件数量。</p></div>
   <div class="paper-field"><div class="field-label">核心贡献</div><p>TiTok 为每查询定位任意数量时间事件段；Time Token Interleaving（TTI）将特殊时间 token 注入视听流对齐输入侧时间感知与输出侧时间预测；解耦多段奖励（全局/局部/计数/精度/格式）配 GDPO 优化；建立 UnAV-100 评估协议与 CountF1 指标。</p></div>
   <div class="paper-field"><div class="field-label">结果与条件</div><p>TiTok 达 65.7 mIoU 与 0.58 CountF1，SOTA 性能。ACCV 2026 录用（arXiv comments 标记）。</p></div>
@@ -362,9 +362,9 @@
 
 <div class="paper">
   
-  <div class="paper-tags">KV cache · speculative decoding · long context · serving</div>
   <h3><a href="https://arxiv.org/abs/2610.13708v1" target="_blank" rel="noopener">Adaptive DHiSparse：负载自适应 KV 层级上的投机解码</a></h3>
   <div class="paper-date">2026-10-09</div>
+  <div class="paper-field"><div class="field-label">Keywords</div><p>KV cache · speculative decoding · long context · serving</p></div>
   <div class="paper-field"><div class="field-label">研究问题</div><p>长上下文服务在硬件达有效吞吐前 KV 内存先耗尽；HiSparse 将历史存主机内存仅取选中项，但每负载用单一缓存预算且不支持草稿模型投机解码。</p></div>
   <div class="paper-field"><div class="field-label">核心贡献</div><p>支持分层稀疏 KV 上的投机解码并自适应驻留：保护工作集，GPU 内存空闲时保留额外历史，其余经精确融合检索恢复；保留 DSpark/DFlash2 提议与接受规则。</p></div>
   <div class="paper-field"><div class="field-label">结果与条件</div><p>100K 上下文并发 128 下 GLM-5.3 配 DFlash2 达 793 输出 tokens/s 每解码 GPU，1.45 倍 HiSparse；同延迟界限下支持至 4 倍并发、2.3~3.7 倍输出；DeepSeek-V4.1-Flash 500K 上下文并发 512 下 DSpark 输出为驻留服务 1.85 倍。</p></div>
@@ -376,9 +376,9 @@
 
 <div class="paper">
   
-  <div class="paper-tags">long video understanding · retrieval augmented generation · multimodal</div>
   <h3><a href="https://arxiv.org/abs/2610.08674v1" target="_blank" rel="noopener">EC-RAG：长视频理解的事件链检索增强生成</a></h3>
   <div class="paper-date">2026-10-07</div>
+  <div class="paper-field"><div class="field-label">Keywords</div><p>long video understanding · retrieval augmented generation · multimodal</p></div>
   <div class="paper-field"><div class="field-label">研究问题</div><p>长视频 LVLM 常独立处理帧，难捕获跨事件时间依赖；现有检索增强多在帧/片段级操作，无法建模事件演化与相互关系。</p></div>
   <div class="paper-field"><div class="field-label">核心贡献</div><p>训练免费框架：问答前将视频组织为显式事件链——先分语义一致片段，多模态信号表示各片段，再链成保留时序与事件关系的结构链；查询时识别相关事件并聚合多模态证据；即插即用兼容现有 LVLM 骨干。</p></div>
   <div class="paper-field"><div class="field-label">结果与条件</div><p>Video-MME、MLVU、LongVideoBench 上事件中心设计一致优于帧级检索基线，突出时序结构建模重要性。</p></div>

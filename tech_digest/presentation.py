@@ -33,14 +33,6 @@ def card_html(c):
         venue = venue + ' ' + track
 
     out = '<article class="paper' + (' focus-paper' if c.get('focus') else '') + '">'
-    # tags
-    if c.get('paper_type'):
-        from .research import PAPER_TYPES
-        out += '<div class="paper-tags">' + e(PAPER_TYPES[c['paper_type']][0])
-        if c.get('research_tags'):
-            out += ' · ' + e(' / '.join(c['research_tags']))
-        out += '</div>'
-
     # title
     out += '<h3>' + link(c['url'], c['title']) + '</h3>'
 
@@ -51,6 +43,14 @@ def card_html(c):
     if c.get('event_type') == 'publication_update':
         date_parts.append('发表动态')
     out += '<div class="paper-date">' + e(' · '.join(x for x in date_parts if x)) + '</div>'
+
+    # keywords (papers only)
+    if c.get('paper_type'):
+        from .research import PAPER_TYPES
+        kw = e(PAPER_TYPES[c['paper_type']][0])
+        if c.get('research_tags'):
+            kw += ' · ' + e(' / '.join(c['research_tags']))
+        out += '<div class="paper-field"><div class="field-label">Keywords</div><p>' + kw + '</p></div>'
 
     # fields
     facts = [('研究问题', 'problem'), ('核心贡献', 'contribution'), ('结果与条件', 'results')] if c['kind'] == 'paper' else [('解决什么问题', 'problem'), ('技术变化', 'contribution'), ('价值与适用条件', 'results')]
