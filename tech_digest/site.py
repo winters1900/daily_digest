@@ -66,7 +66,7 @@ def janus_shell(title, body, revision='', nav_links=None):
 <nav class="nav">
   <div class="nav-inner">
     <div class="nav-logo-wrap">
-      <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;" class="nav-logo" id="navLogoBtn">
+      <a href="#" class="nav-logo" id="navLogoBtn">
         <span class="ch ch-j">J</span><span class="ch ch-anus">anus</span><span class="ch ch-space">&nbsp;</span><span class="ch ch-c">C</span><span class="ch ch-lient">lient</span>
       </a>
       <div class="dropdown-menu" id="navDropdown">
