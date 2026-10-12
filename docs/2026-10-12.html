@@ -1,6 +1,509 @@
-<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="digest-revision" content="890c0f9f8bc38e3cbe6fe1944d707fbba5bdf68909cc9bd6bb32b5729b60cf6c"><title>技术日报 · 2026-10-12</title>
-<link rel="stylesheet" href="assets/digest-v3.css?v=84f8b85fc42a"></head><body>
-<header><nav><a class="brand" href="index.html">DIGEST<span>技术日报</span></a><a href="index.html">历史归档 ↗</a></nav></header>
-<main><div class="masthead"><div class="date">2026.10.12</div><h1>技术日报</h1><div class="tabs"><a href="#arxiv">arXiv 前沿 · 10</a><a href="#news-1">工程实践 · 1</a><a href="#news-3">深度解读 · 1</a></div></div><div class="layout"><div><section class="section" id="arxiv"><div class="section-title"><h2>arXiv 前沿</h2></div><div id="item-candidate:7d1b61b51708e43496d2bacc"><article class="card"><div class="eyebrow"><span class="badge">预印本 · 未同行评审</span><span>arXiv </span><span>阅读：摘要</span></div><p class="meta">方法论文 · reinforcement learning / LLM agents / rollout intervention</p><h3><a href="https://arxiv.org/abs/2610.13438v1" rel="noopener noreferrer">Rollout-Time Intervention：突破策略边界的Agentic强化学习</a></h3><div class="meta">2026-10-09</div><div class="card-fact"><strong>研究问题</strong><p>现有agent RL受on-policy推理瓶颈约束：任务超出模型当前能力边界时有效轨迹极其稀疏，训练常崩溃。</p></div><div class="card-fact"><strong>核心贡献</strong><p>RTI利用reward侧证据（评估rubric）在rollout期间将错误轨迹转化为成功轨迹，为策略很少独立解决的提供有效学习信号；过滤分布偏移过大的干预轨迹后引导策略优化。</p></div><div class="card-fact"><strong>结果与条件</strong><p>五个基准上RTI一致优于RL基线，使后训练策略逼近更强当代LLM并超越原始能力边界。</p></div><p class="conditions">干预轨迹本质off-policy，需过滤过大分布偏移；五个基准的详细数值摘要未给。</p><p class="value"><strong>为什么读</strong>on-policy推理瓶颈限制agent RL</p><p><strong>主要限制</strong> 阅读范围：官方摘要，未读全文。五基准具体数值摘要未给。</p><div class="action"><strong>阅读建议</strong>用评估rubric在rollout时修正轨迹可为困难任务提供学习信号；关注分布偏移过滤。</div><div class="links"><a href="https://arxiv.org/abs/2610.13438v1" rel="noopener noreferrer">原文 ↗</a><a href="https://arxiv.org/abs/2610.13438v1" rel="noopener noreferrer">日期依据 ↗</a></div><details><summary>结论证据与阅读记录</summary><ul><li>RTI在五个基准上一致优于RL基线，使后训练策略逼近更强LLM并超越原始能力边界。 · <a href="https://arxiv.org/abs/2610.13438v1" rel="noopener noreferrer">arXiv Abstract</a><br><small>Extensive experiments across five benchmarks demonstrate that RTI consistently outperforms RL baselines, enabling the post-trained policy to approach the performance of substantially stronger contemporary LLMs and, more importantly, transcend its original capability boundary.</small></li></ul><dl><dt>五基准一致优于RL基线，逼近更强当代LLM并超越原始能力边界</dt><dd>指标：基准胜率（摘要未给具体数值）；比较：RTI相对RL基线；条件：五个基准，过滤过大分布偏移干预轨迹<br>摘要明确报告一致优于基线</dd></dl><dl><dt>方法机制</dt><dd>评估rubric在rollout期修正错误轨迹+过滤大分布偏移</dd><dt>比较基线</dt><dd>RL基线（摘要未给名）</dd><dt>消融与归因</dt><dd>摘要未给消融细节（未报告）</dd></dl><p>发现渠道：arXiv</p></details></article></div><div id="item-candidate:bd57f07bf1036f0b04e889d1"><article class="card"><div class="eyebrow"><span class="badge">预印本 · 未同行评审</span><span>arXiv </span><span>阅读：摘要</span></div><p class="meta">方法论文 · diffusion language model / tool-use agent / chemistry reasoning</p><h3><a href="https://arxiv.org/abs/2610.13330v1" rel="noopener noreferrer">ChemDiffAgent：工具集成化学推理的掩码扩散语言智能体</a></h3><div class="meta">2026-10-09</div><div class="card-fact"><strong>研究问题</strong><p>工具集成化学推理智能体多基于自回归范式，受因果注意力与从左到右生成约束，难做双向分子理解、全局工具规划与多源证据整合。</p></div><div class="card-fact"><strong>核心贡献</strong><p>ChemDiffAgent为首个掩码扩散语言智能体：将化学推理重构为推理与工具使用轨迹交错上的迭代去噪，全轨迹上下文联合决定工具使用；两阶段后训练（agentic SFT+方差缩减偏好优化）；构建覆盖六化学任务单/多轮工具使用基准。</p></div><div class="card-fact"><strong>结果与条件</strong><p>匹配预算与评估下一致优于自回归智能体，整体提升约20%；8B模型性能媲美甚至超过GPT 5.5与Claude Opus 4.7等更大前沿模型。</p></div><p class="conditions">匹配预算与评估；六化学任务单/多轮工具使用。</p><p class="value"><strong>为什么读</strong>化学工具集成推理受自回归范式限制</p><p><strong>主要限制</strong> 阅读范围：官方摘要，未读全文。未核验NeurIPS录用官方页面日期。</p><div class="action"><strong>阅读建议</strong>化学工具集成推理可用扩散范式突破自回归限制；关注全轨迹工具决策。</div><div class="links"><a href="https://arxiv.org/abs/2610.13330v1" rel="noopener noreferrer">原文 ↗</a><a href="https://arxiv.org/abs/2610.13330v1" rel="noopener noreferrer">日期依据 ↗</a></div><details><summary>结论证据与阅读记录</summary><ul><li>ChemDiffAgent整体提升约20%，8B模型性能媲美甚至超过GPT 5.5与Claude Opus 4.7。 · <a href="https://arxiv.org/abs/2610.13330v1" rel="noopener noreferrer">arXiv Abstract</a><br><small>ChemDiffAgent consistently outperforms autoregressive agents, achieving an overall improvement of approximately 20%. Notably, our 8B model achieves performance comparable to, in some cases surpassing, significantly larger frontier models, such as GPT 5.5 and Claude Opus 4.7.</small></li></ul><dl><dt>整体提升约20%，8B媲美甚至超过GPT 5.5与Claude Opus 4.7</dt><dd>指标：基准提升幅度；比较：ChemDiffAgent相对自回归智能体；条件：六化学任务单/多轮工具使用，匹配预算<br>摘要明确报告约20%提升与8B媲美前沿模型</dd></dl><dl><dt>方法机制</dt><dd>轨迹级迭代去噪+agentic SFT+方差缩减偏好优化</dd><dt>比较基线</dt><dd>自回归化学智能体</dd><dt>消融与归因</dt><dd>摘要级：harder infilling与任意序解码分析</dd></dl><p>发现渠道：arXiv</p></details></article></div><div id="item-candidate:29c57730d6c3d811b8b963b8"><article class="card"><div class="eyebrow"><span class="badge">预印本 · 未同行评审</span><span>arXiv </span><span>阅读：摘要</span></div><p class="meta">方法论文 · world action model / driving / reinforcement learning / 3D gaussian splatting</p><h3><a href="https://arxiv.org/abs/2610.13781v1" rel="noopener noreferrer">SimVTA：仿真锚定的视频-轨迹对齐用于驾驶世界动作模型</a></h3><div class="meta">2026-10-10</div><div class="card-fact"><strong>研究问题</strong><p>驾驶世界动作模型(WAM)从配对轨迹与未来观测学习，但驾驶日志只含记录轨迹的未来视频，强化学习探索的替代轨迹缺乏对应视觉监督。</p></div><div class="card-fact"><strong>核心贡献</strong><p>提出仿真锚定的后训练框架：对每个观测采样候选轨迹，用真实世界模拟器（World Engine）在3DGS重建场景渲染高奖励候选的未来视频；在有限渲染预算下优先给高误差未来分配视频监督；用GRPO优化轨迹规划，flow-matching损失更新共享表示。推理时无模拟器调用。</p></div><div class="card-fact"><strong>结果与条件</strong><p>NAVSIM v1上PDMS从86.2提升至91.3(+5.1)；NAVSIM v2达88.2 EPDMS，HUGSIM闭环评估平均HD-Score 38.8。消融显示共享表示的视频监督改进规划，高误差优先分配进一步提效。</p></div><p class="conditions">3DGS重建场景+World Engine渲染；有限渲染预算下高误差优先；推理时不依赖模拟器。</p><p class="value"><strong>为什么读</strong>替代轨迹缺视觉监督是驾驶WAM强化学习瓶颈</p><p><strong>主要限制</strong> 阅读范围：官方摘要，未读全文或复现。渲染预算与消融细节有限。</p><div class="action"><strong>阅读建议</strong>驾驶世界模型的强化学习可用仿真渲染视频补足替代轨迹监督；关注渲染预算分配。</div><div class="links"><a href="https://arxiv.org/abs/2610.13781v1" rel="noopener noreferrer">原文 ↗</a><a href="https://arxiv.org/abs/2610.13781v1" rel="noopener noreferrer">日期依据 ↗</a></div><details><summary>结论证据与阅读记录</summary><ul><li>SimVTA将NAVSIM v1 PDMS从86.2提升至91.3(+5.1)，NAVSIM v2达88.2 EPDMS，HUGSIM闭环HD-Score 38.8。 · <a href="https://arxiv.org/abs/2610.13781v1" rel="noopener noreferrer">arXiv Abstract</a><br><small>On NAVSIM v1, applying SimVTA to a WAM initialization improves PDMS from 86.2 to 91.3 (+5.1). It achieves 88.2 EPDMS on NAVSIM v2 and an average HD-Score of 38.8 in closed-loop evaluation on HUGSIM.</small></li></ul><dl><dt>NAVSIM v1 PDMS从86.2提升至91.3(+5.1)，NAVSIM v2达88.2 EPDMS，HUGSIM闭环HD-Score 38.8</dt><dd>指标：PDMS/EPDMS/HD-Score；比较：SimVTA相对WAM初始化；条件：NAVSIM v1/v2与HUGSIM闭环，WAM初始化<br>摘要明确报告三组数值</dd></dl><dl><dt>方法机制</dt><dd>模拟器渲染高奖励候选未来视频+GRPO+flow-matching共享表示更新</dd><dt>比较基线</dt><dd>WAM初始化（未给具体基线名）</dd><dt>消融与归因</dt><dd>视频监督改进规划、高误差优先提升性能（摘要级）</dd></dl><p>发现渠道：arXiv</p></details></article></div><div id="item-candidate:d8cd449ebf6e3b41081fd96d"><article class="card"><div class="eyebrow"><span class="badge">预印本 · 未同行评审</span><span>arXiv </span><span>阅读：摘要</span></div><p class="meta">方法论文 · diffusion models / reinforcement learning / reward optimization</p><h3><a href="https://arxiv.org/abs/2610.12572v1" rel="noopener noreferrer">DiffusionART：高效、稳定、可扩展的扩散模型强化</a></h3><div class="meta">2026-10-09</div><div class="card-fact"><strong>研究问题</strong><p>在线RL微调扩散模型受黑盒奖励约束：Flow-GRPO等逆过程方法受差信用分配限制效率，DiffusionNFT等正过程方法高效但依赖精心调参的EMA off-policy训练才稳定。</p></div><div class="card-fact"><strong>核心贡献</strong><p>揭示NFT风格目标含隐藏的正向-反向一致性力（joint正负训练仅部分抵消）；DiffusionART将每提示奖励聚合为共享奖励提升方向，构造上消除一致性力，加trust-region掩码二次更新实现漂移自适应恢复且无需EMA调参；支持成对奖励模型(DiffusionART-Pairwise)。</p></div><div class="card-fact"><strong>结果与条件</strong><p>HunyuanVideo-13B上，以等权视觉与运动质量奖励，DiffusionART达到DiffusionNFT与Flow-GRPO-Fast晚期平均奖励水平分别少用12.02与11.72倍GPU小时，同时平均训练奖励高28.8%与53.0%。</p></div><p class="conditions">无需可微奖励模型；更少每提示样本仍有效；图像与视频生成均验证。</p><p class="value"><strong>为什么读</strong>扩散模型在线RL效率与稳定性难兼得</p><p><strong>主要限制</strong> 阅读范围：官方摘要，未读全文。消融与图像结果细节有限。</p><div class="action"><strong>阅读建议</strong>扩散模型在线RL可去除EMA调参实现稳定高效训练；关注奖励聚合方向。</div><div class="links"><a href="https://arxiv.org/abs/2610.12572v1" rel="noopener noreferrer">原文 ↗</a><a href="https://arxiv.org/abs/2610.12572v1" rel="noopener noreferrer">日期依据 ↗</a></div><details><summary>结论证据与阅读记录</summary><ul><li>DiffusionART在HunyuanVideo-13B上达到DiffusionNFT与Flow-GRPO-Fast晚期平均奖励水平分别少用12.02与11.72倍GPU小时，平均训练奖励高28.8%与53.0%。 · <a href="https://arxiv.org/abs/2610.12572v1" rel="noopener noreferrer">arXiv Abstract</a><br><small>On HunyuanVideo-13B, DiffusionART reaches the late-stage mean reward levels of DiffusionNFT and Flow-GRPO-Fast with 12.02 and 11.72 times fewer GPU hours, respectively, while achieving 28.8% and 53.0% higher mean training rewards.</small></li></ul><dl><dt>HunyuanVideo-13B上达到DiffusionNFT与Flow-GRPO-Fast晚期平均奖励分别少用12.02与11.72倍GPU小时，平均训练奖励高28.8%与53.0%</dt><dd>指标：平均奖励/GPU小时；比较：DiffusionART相对DiffusionNFT/Flow-GRPO-Fast；条件：HunyuanVideo-13B，等权视觉与运动质量奖励<br>摘要明确报告GPU小时与奖励数值</dd></dl><dl><dt>方法机制</dt><dd>奖励聚合共享方向+trust-region掩码二次更新</dd><dt>比较基线</dt><dd>DiffusionNFT、Flow-GRPO-Fast</dd><dt>消融与归因</dt><dd>摘要级：少样本有效、成对奖励支持</dd></dl><p>发现渠道：arXiv</p></details></article></div><div id="item-candidate:ab3de1755d2284a8ef96fe60"><article class="card"><div class="eyebrow"><span class="badge">预印本 · 未同行评审</span><span>arXiv </span><span>阅读：摘要</span></div><p class="meta">方法论文 · robot learning / action regression / flow matching / student-t</p><h3><a href="https://arxiv.org/abs/2610.12231v1" rel="noopener noreferrer">残差建模弥合机器人学习回归与生成策略差距</a></h3><div class="meta">2026-10-09</div><div class="card-fact"><strong>研究问题</strong><p>流匹配/扩散策略常优于MSE直接动作回归，差距通常归因于多模态演示；从统计建模视角，动作预测残差形态塑造策略优化，MSE梯度过度偏向大残差观测损害优化。</p></div><div class="card-fact"><strong>核心贡献</strong><p>分析真实机器人演示数据：残差尺度随状态显著变化且重尾。提出异方差Student-t动作回归(HT-Policies)：学习输入相关残差尺度并降低重尾影响；单前馈预测动作块，可复用预训练流匹配策略骨干。</p></div><div class="card-fact"><strong>结果与条件</strong><p>四个仿真基准+真实机器人评估上，HT-Policies成功率与生成策略基线相当（从零训练与预训练VLA/WAM微调），训练与推理更快。</p></div><p class="conditions">真实演示数据残差重尾；HT-Policies复用预训练流匹配骨干；四仿真+真实机器人。</p><p class="value"><strong>为什么读</strong>MSE回归与生成策略差距的统计根源</p><p><strong>主要限制</strong> 阅读范围：官方摘要，未读全文。成功率具体数值摘要未给。</p><div class="action"><strong>阅读建议</strong>直接回归可与生成策略竞争；关注残差统计建模。</div><div class="links"><a href="https://arxiv.org/abs/2610.12231v1" rel="noopener noreferrer">原文 ↗</a><a href="https://arxiv.org/abs/2610.12231v1" rel="noopener noreferrer">日期依据 ↗</a></div><details><summary>结论证据与阅读记录</summary><ul><li>HT-Policies在四仿真基准+真实机器人上成功率与生成策略基线相当，训练与推理更快。 · <a href="https://arxiv.org/abs/2610.12231v1" rel="noopener noreferrer">arXiv Abstract</a><br><small>Across four simulation benchmarks and real-robot evaluations, HT-Policies achieves success rates competitive with generative policy baselines, both when trained from scratch and from pretrained vision-language-action and world-action models, despite being faster in training and inference.</small></li></ul><dl><dt>四仿真+真实机器人成功率与生成策略基线相当，训练与推理更快</dt><dd>指标：成功率（摘要未给具体数值）；比较：HT-Policies相对MSE-Policies/Flow-Policies；条件：四仿真基准+真实机器人，从零训练与预训练微调<br>摘要明确报告成功率相当且更快</dd></dl><dl><dt>方法机制</dt><dd>输入相关残差尺度Student-t回归，降低重尾影响</dd><dt>比较基线</dt><dd>MSE-Policies、Flow-Policies</dd><dt>消融与归因</dt><dd>摘要级：从零训练与预训练微调均验证</dd></dl><p>发现渠道：arXiv</p></details></article></div><div id="item-candidate:ec52b27b876d3bfac0df08cf"><article class="card"><div class="eyebrow"><span class="badge">预印本 · 未同行评审</span><span>arXiv </span><span>阅读：摘要</span></div><p class="meta">系统论文 · speculative decoding / KV cache / reinforcement learning / sparse attention</p><h3><a href="https://arxiv.org/abs/2610.13202v1" rel="noopener noreferrer">S3R：基于自稀疏投机解码的快速忠实RL Rollout</a></h3><div class="meta">2026-10-09</div><div class="card-fact"><strong>研究问题</strong><p>长上下文RLVR快速rollout需减少KV缓存流量但不改变策略优化所用的响应组；直接稀疏采样会改变响应组分布，逐响应精确重加权也无法恢复期望稠密策略更新。</p></div><div class="card-fact"><strong>核心贡献</strong><p>S3R用稀疏注意力提议token，全注意力验证+精确投机采样生成响应；草稿与验证共享同一策略参数，无需独立草稿模型；KV感知调度器限制重复卸载/恢复。</p></div><div class="card-fact"><strong>结果与条件</strong><p>长上下文数学推理上，S3R使Qwen3模型端到端训练吞吐达自回归rollout的1.39倍（约1.35倍），任务性能相当；稀疏草稿预算下稳定训练而直接稀疏采样不稳定。</p></div><p class="conditions">注意力占自回归解码kernel时间72-76%；稠密验证仍需完整历史KV缓存；Qwen3模型。</p><p class="value"><strong>为什么读</strong>RLVR rollout需降KV流量且保响应组分布</p><p><strong>主要限制</strong> 阅读范围：官方摘要，未读全文。草稿预算与调度细节有限。</p><div class="action"><strong>阅读建议</strong>稀疏注意力可用于rollout加速而不改变学习分布；关注KV调度与草稿共享。</div><div class="links"><a href="https://arxiv.org/abs/2610.13202v1" rel="noopener noreferrer">原文 ↗</a><a href="https://arxiv.org/abs/2610.13202v1" rel="noopener noreferrer">日期依据 ↗</a></div><details><summary>结论证据与阅读记录</summary><ul><li>S3R在长上下文数学推理上使Qwen3模型端到端训练吞吐达自回归rollout的1.39倍(1.35×)，性能相当。 · <a href="https://arxiv.org/abs/2610.13202v1" rel="noopener noreferrer">arXiv Abstract</a><br><small>On long-context mathematical reasoning, S3R achieves 1.39x 1.35x the end-to-end training throughput of autoregressive rollouts on Qwen3 model, with comparable task performance.</small></li></ul><dl><dt>Qwen3模型上端到端训练吞吐达自回归rollout的1.39倍（约1.35倍），性能相当</dt><dd>指标：训练吞吐/任务性能；比较：S3R相对自回归rollout；条件：长上下文数学推理，Qwen3，匹配消融<br>摘要明确报告吞吐倍率与性能相当</dd></dl><dl><dt>工作负载</dt><dd>长上下文RLVR数学推理rollout</dd><dt>硬件与配置</dt><dd>摘要未明确硬件（未报告）</dd><dt>比较公平性</dt><dd>相对自回归rollout吞吐</dd><dt>成本与代价</dt><dd>摘要未给成本数值（未报告）</dd></dl><p>发现渠道：arXiv</p></details></article></div><div id="item-candidate:28864715ad09f1c1080dd372"><article class="card"><div class="eyebrow"><span class="badge">预印本 · 未同行评审</span><span>arXiv </span><span>阅读：摘要</span></div><p class="meta">方法论文 · vision-language-action / robot foundation model / autoregressive</p><h3><a href="https://arxiv.org/abs/2608.11739v1" rel="noopener noreferrer">G0.5：单一自回归流实现机器人推理与动作</a></h3><div class="meta">2026-08-12 · 历史补查首次推荐</div><div class="card-fact"><strong>研究问题</strong><p>主流VLA配方耦合预训练VLM与独立训练的流匹配动作专家，使VLM沦为上下文编码器而非决策者。</p></div><div class="card-fact"><strong>核心贡献</strong><p>G0.5为预训练自回归VLA：单transformer解码器单目标同时发射推理与动作token；可学习跨本体动作tokenizer、原生思维链流（任务分解/物体接地/动作提示与动作token交错）、视觉记忆模块注入多秒历史。</p></div><div class="card-fact"><strong>结果与条件</strong><p>预训练后7个独立体系超SOTA：R1lite/R1pro真实微调(76.7% vs π0.5的53.3%)、2025 BEHAVIOR挑战50长时任务(31.4% vs 26.3%)、DROID后训练零样本迁移82.5%、LIBERO 98.9%、RoboTwin 2.0 93.3%、SimplerEnv-Bridge 87.3%。</p></div><p class="conditions">推理与动作共享权重，VLM能力迁移到物理行为；提示直接调控动作粒度/任务视界/OOD处理。</p><p class="value"><strong>为什么读</strong>VLM在VLA中沦为上下文编码器</p><p><strong>主要限制</strong> 阅读范围：官方摘要，未读全文。预训练数据与配置细节有限。</p><div class="action"><strong>阅读建议</strong>单流自回归VLA可让VLM成为决策者；关注跨本体tokenizer与视觉记忆。</div><div class="links"><a href="https://arxiv.org/abs/2608.11739v1" rel="noopener noreferrer">原文 ↗</a><a href="https://arxiv.org/abs/2608.11739v1" rel="noopener noreferrer">日期依据 ↗</a></div><details><summary>结论证据与阅读记录</summary><ul><li>G0.5在7个独立体系超SOTA：R1lite/R1pro真实微调76.7%(vs π0.5 53.3%)、2025 BEHAVIOR挑战31.4%(vs 26.3%, 50长时任务)、DROID零样本迁移82.5%、LIBERO 98.9%、RoboTwin 2.0 93.3%、SimplerEnv-Bridge 87.3%。 · <a href="https://arxiv.org/abs/2608.11739v1" rel="noopener noreferrer">arXiv Abstract</a><br><small>G0.5 surpasses state-of-the-art models across 7 independent regimes: real-world fine-tuning on R1lite and R1pro robots (76.7% vs. 53.3% for π0.5 and 24.4% for GR00T-N1.7), the 2025 BEHAVIOR Challenge (31.4% vs. 26.3% across 50 long-horizon tasks), post-training zero-shot transfer to DROID (82.5%), LIBERO (98.9%), RoboTwin 2.0 (93.3%), and SimplerEnv-Bridge (87.3%).</small></li></ul><dl><dt>7个独立体系超SOTA：R1lite/R1pro真实微调76.7%(vs π0.5 53.3%)、2025 BEHAVIOR挑战50长时任务31.4%(vs 26.3%)、DROID零样本迁移82.5%、LIBERO 98.9%、RoboTwin 2.0 93.3%、SimplerEnv-Bridge 87.3%</dt><dd>指标：成功率；比较：G0.5相对π0.5/GR00T-N1.7；条件：7独立体系：R1lite/R1pro、BEHAVIOR、DROID、LIBERO、RoboTwin、SimplerEnv<br>摘要明确报告各体系成功率数值</dd></dl><dl><dt>方法机制</dt><dd>跨本体动作tokenizer+原生CoT流+视觉记忆模块</dd><dt>比较基线</dt><dd>π0.5、GR00T-N1.7等</dd><dt>消融与归因</dt><dd>摘要级：提示调控粒度/视界/OOD</dd></dl><p>发现渠道：arXiv</p></details></article></div><div id="item-candidate:e21d0b4e2ce08a9f1c992d78"><article class="card"><div class="eyebrow"><span class="badge">预印本 · 未同行评审</span><span>arXiv </span><span>阅读：摘要</span></div><p class="meta">方法论文 · audio-visual / temporal grounding / multimodal LLM / reinforcement learning</p><h3><a href="https://arxiv.org/abs/2610.09408v1" rel="noopener noreferrer">TiTok：多段时间定位的视听LLM</a></h3><div class="meta">2026-10-07</div><div class="card-fact"><strong>研究问题</strong><p>未剪辑视频中的视听多段定位(AV-MSG)需融合视听证据并预测查询对应多段，视觉模型忽略声学线索，视听模型常无法校准事件数量(count miscalibration)。</p></div><div class="card-fact"><strong>核心贡献</strong><p>TiTok为每查询定位任意数量时间事件段；Time Token Interleaving(TTI)将特殊时间token注入视听流对齐输入侧时间感知与输出侧时间预测；解耦多段奖励（全局/局部/计数/精度/格式）配GDPO优化；建立UnAV-100评估协议与CountF1指标。</p></div><div class="card-fact"><strong>结果与条件</strong><p>TiTok达65.7 mIoU与0.58 CountF1，SOTA性能。</p></div><p class="conditions">基于UnAV-100的新评估协议；ACCV 2026录用（arXiv comments标记）。</p><p class="value"><strong>为什么读</strong>视听多段定位的事件数校准问题</p><p><strong>主要限制</strong> 阅读范围：官方摘要，未读全文。未核验ACCV录用官方页面日期。</p><div class="action"><strong>阅读建议</strong>视听多段定位需显式时间token与计数奖励；关注CountF1。</div><div class="links"><a href="https://arxiv.org/abs/2610.09408v1" rel="noopener noreferrer">原文 ↗</a><a href="https://arxiv.org/abs/2610.09408v1" rel="noopener noreferrer">日期依据 ↗</a></div><details><summary>结论证据与阅读记录</summary><ul><li>TiTok达65.7 mIoU与0.58 CountF1，实现SOTA性能。 · <a href="https://arxiv.org/abs/2610.09408v1" rel="noopener noreferrer">arXiv Abstract</a><br><small>TiTok reaches 65.7 mIoU and 0.58 CountF1, achieving state-of-the-art performance.</small></li></ul><dl><dt>65.7 mIoU与0.58 CountF1，SOTA</dt><dd>指标：mIoU/CountF1；比较：TiTok相对现有视听/视觉模型；条件：UnAV-100评估协议<br>摘要明确报告mIoU与CountF1数值</dd></dl><dl><dt>方法机制</dt><dd>TTI时间token注入+解耦多段奖励+GDPO</dd><dt>比较基线</dt><dd>未给具体基线名（SOTA声明）</dd><dt>消融与归因</dt><dd>摘要未给消融细节（未报告）</dd></dl><p>发现渠道：arXiv</p></details></article></div><div id="item-candidate:a5974af4060221bf229e1b0e"><article class="card"><div class="eyebrow"><span class="badge">预印本 · 未同行评审</span><span>arXiv </span><span>阅读：摘要</span></div><p class="meta">系统论文 · KV cache / speculative decoding / long context / serving</p><h3><a href="https://arxiv.org/abs/2610.13708v1" rel="noopener noreferrer">Adaptive DHiSparse：负载自适应KV层级上的投机解码</a></h3><div class="meta">2026-10-09</div><div class="card-fact"><strong>研究问题</strong><p>长上下文服务在硬件达有效吞吐前KV内存先耗尽；HiSparse将历史存主机内存仅取选中项，但每负载用单一缓存预算且不支持草稿模型投机解码。</p></div><div class="card-fact"><strong>核心贡献</strong><p>Adaptive DHiSparse支持分层稀疏KV上的投机解码并自适应驻留：保护工作集，GPU内存空闲时保留额外历史，其余经精确融合检索恢复；保留DSpark/DFlash2提议与接受规则。</p></div><div class="card-fact"><strong>结果与条件</strong><p>100K上下文并发128下GLM-5.3配DFlash2达793输出tokens/s每解码GPU，1.45倍HiSparse；同延迟界限下支持至4倍并发、2.3~3.7倍输出；DeepSeek-V4.1-Flash 500K上下文并发512下DSpark输出为驻留服务1.85倍。</p></div><p class="conditions">GLM-5.3/DeepSeek-V4.1-Flash；100K/500K上下文；并发128/512；延迟界限同HiSparse。</p><p class="value"><strong>为什么读</strong>长上下文KV内存瓶颈与投机解码兼容性</p><p><strong>主要限制</strong> 阅读范围：官方摘要，未读全文。调度细节有限。</p><div class="action"><strong>阅读建议</strong>投机解码可与分层稀疏KV结合；关注负载自适应驻留。</div><div class="links"><a href="https://arxiv.org/abs/2610.13708v1" rel="noopener noreferrer">原文 ↗</a><a href="https://arxiv.org/abs/2610.13708v1" rel="noopener noreferrer">日期依据 ↗</a></div><details><summary>结论证据与阅读记录</summary><ul><li>Adaptive DHiSparse在100K上下文并发128下GLM-5.3配DFlash2达793输出tokens/s(1.45倍HiSparse)，同延迟界限下支持至4倍并发、2.3~3.7倍输出；DeepSeek-V4.1-Flash 500K上下文下输出为驻留服务1.85倍。 · <a href="https://arxiv.org/abs/2610.13708v1" rel="noopener noreferrer">arXiv Abstract</a><br><small>At 100K context and concurrency 128, GLM-5.3 with DFlash2 delivers 793 output tokens/s per decode GPU, 1.45x HiSparse and 1.27x non-speculative adaptive serving, while supporting up to 4x concurrency and 2.3~3.7x higher output within the same latency bounds. On DeepSeek-V4.1-Flash at 500K context and concurrency 512, Adaptive DHiSparse with DSpark delivers 1.85x the output of resident serving with DSpark.</small></li></ul><dl><dt>100K上下文并发128下GLM-5.3配DFlash2达793输出tokens/s(1.45倍HiSparse)，同延迟界限下支持至4倍并发、2.3~3.7倍输出；500K上下文并发512下DeepSeek-V4.1-Flash输出为驻留服务1.85倍</dt><dd>指标：输出吞吐/并发；比较：Adaptive DHiSparse相对HiSparse/驻留服务；条件：100K上下文并发128与500K上下文并发512，GLM-5.3/DeepSeek-V4.1-Flash<br>摘要明确报告吞吐与倍率数值</dd></dl><dl><dt>工作负载</dt><dd>长上下文LLM服务（100K/500K上下文）</dd><dt>硬件与配置</dt><dd>GPU（未给型号）</dd><dt>比较公平性</dt><dd>相对HiSparse与非投机自适应服务</dd><dt>成本与代价</dt><dd>摘要未给成本数值（未报告）</dd></dl><p>发现渠道：arXiv</p></details></article></div><div id="item-candidate:98f09933ff2d7dd00c4ba011"><article class="card"><div class="eyebrow"><span class="badge">预印本 · 未同行评审</span><span>arXiv </span><span>阅读：摘要</span></div><p class="meta">方法论文 · long video understanding / retrieval augmented generation / multimodal</p><h3><a href="https://arxiv.org/abs/2610.08674v1" rel="noopener noreferrer">EC-RAG：长视频理解的事件链检索增强生成</a></h3><div class="meta">2026-10-07</div><div class="card-fact"><strong>研究问题</strong><p>长视频LVLM常独立处理帧，难捕获跨事件时间依赖；现有检索增强多在帧/片段级操作，无法建模事件演化与相互关系。</p></div><div class="card-fact"><strong>核心贡献</strong><p>EC-RAG训练免费框架：问答前将视频组织为显式事件链——先分语义一致片段，多模态信号表示各片段，再链成保留时序与事件关系的结构链；查询时识别相关事件并聚合多模态证据；即插即用兼容现有LVLM骨干。</p></div><div class="card-fact"><strong>结果与条件</strong><p>Video-MME、MLVU、LongVideoBench上事件中心设计一致优于帧级检索基线，突出时序结构建模重要性。</p></div><p class="conditions">训练免费、无需专有模型；三长视频基准；具体数值摘要未给。</p><p class="value"><strong>为什么读</strong>长视频LVLM时序依赖建模不足</p><p><strong>主要限制</strong> 阅读范围：官方摘要，未读全文。基准具体数值摘要未给。</p><div class="action"><strong>阅读建议</strong>长视频理解应将内容组织为事件链；关注事件级抽象与多模态融合。</div><div class="links"><a href="https://arxiv.org/abs/2610.08674v1" rel="noopener noreferrer">原文 ↗</a><a href="https://arxiv.org/abs/2610.08674v1" rel="noopener noreferrer">日期依据 ↗</a></div><details><summary>结论证据与阅读记录</summary><ul><li>EC-RAG在Video-MME、MLVU、LongVideoBench上事件中心设计一致优于帧级检索基线。 · <a href="https://arxiv.org/abs/2610.08674v1" rel="noopener noreferrer">arXiv Abstract</a><br><small>Experiments on Video-MME, MLVU, and LongVideoBench show that this event-centric design consistently outperforms frame-level retrieval baselines</small></li></ul><dl><dt>Video-MME、MLVU、LongVideoBench上一致优于帧级检索基线</dt><dd>指标：基准胜率（摘要未给具体数值）；比较：EC-RAG相对帧级检索基线；条件：三长视频基准，训练免费<br>摘要明确报告一致优于基线</dd></dl><dl><dt>方法机制</dt><dd>语义片段化+多模态表示+事件链结构化检索</dd><dt>比较基线</dt><dd>帧级/片段级检索基线</dd><dt>消融与归因</dt><dd>摘要未给消融细节（未报告）</dd></dl><p>发现渠道：arXiv</p></details></article></div></section><section class="section" id="news-1"><div class="section-title"><h2>工程实践</h2></div><div id="item-candidate:9aa5e7de495d66f2ef1427f6"><article class="card"><div class="eyebrow"><span class="badge">预印本 · 未同行评审</span><span>Chip Huyen </span><span>阅读：帖子</span></div><h3><a href="https://x.com/chipro/status/2092303355670606292" rel="noopener noreferrer">Chip Huyen 调研 agent skills 最佳实践：安装数量与选择质量</a></h3><div class="meta">2026-08-26 · 历史补查首次推荐</div><div class="card-fact"><strong>解决什么问题</strong><p>Agent 技能(skills)安装多少合适、如何评估成为实操问题，社区缺乏实证共识。</p></div><div class="card-fact"><strong>技术变化</strong><p>Chip Huyen发起投票调研最常安装的技能数量并追问token成本与评估方法；社区回复指出技能超过约6个后失败模式从"能否完成任务"转为"是否选对技能"。</p></div><div class="card-fact"><strong>价值与适用条件</strong><p>投票820票：0个16.5%、1~5个36%、6~10个17.4%、&gt;10个30.1%；社区回复强调技能确定性/可测性，超过约6个后失败模式转向技能选择质量。</p></div><p class="conditions">投票2026-08-26发布；作者身份已核验(huyenchip.com/)；投票为社区自报非实验。</p><p class="value"><strong>为什么读</strong>Agent技能管理缺乏实证依据</p><p><strong>主要限制</strong> 投票为社区自报非对照实验；样本选择有偏。</p><div class="action"><strong>阅读建议</strong>构建agent系统时优先可测、确定性(CLI)技能并监控选择质量而非只追求数量。</div><div class="links"><a href="https://x.com/chipro/status/2092303355670606292" rel="noopener noreferrer">原文 ↗</a><a href="https://huyenchip.com/" rel="noopener noreferrer">日期依据 ↗</a></div><details><summary>结论证据与阅读记录</summary><ul><li>Chip Huyen调研agent技能安装数量最佳实践：投票820票，0个16.5%、1~5个36%、6~10个17.4%、&gt;10个30.1%；回复强调技能可测性与选择质量。 · <a href="https://x.com/chipro/status/2092303355670606292" rel="noopener noreferrer">原帖投票结果</a><br><small>i&#x27;m researching best practices for skills. what&#x27;s the most number of skills you&#x27;ve had installed for your agents? 0 / what&#x27;s a skill? 16.5% 1~5 36% 6~10 17.4% &gt;10 30.1% 820 votes</small></li></ul><dl><dt>投票820票：0个16.5%、1~5个36%、6~10个17.4%、&gt;10个30.1%</dt><dd>指标：投票分布；比较：各区间占比；条件：2026-08-26发布，社区自报<br>浏览器读取原帖投票结果，数值与excerpt一致</dd></dl><p>发现渠道：Chip Huyen</p></details></article></div></section><section class="section" id="news-3"><div class="section-title"><h2>深度解读</h2></div><div id="item-candidate:33ce3351f8c069816be93d93"><article class="card"><div class="eyebrow"><span class="badge">预印本 · 未同行评审</span><span>Simon Willison </span><span>阅读：帖子</span></div><h3><a href="https://x.com/simonw/status/2104630129528037415" rel="noopener noreferrer">Simon Willison 发布 Devs 世界大会演讲笔记与注释文稿</a></h3><div class="meta">2026-09-29 · 历史补查首次推荐</div><div class="card-fact"><strong>解决什么问题</strong><p>LLM与agent在2026年的进展快速演进，需要可追溯的演讲级综述帮助开发者跟上。</p></div><div class="card-fact"><strong>技术变化</strong><p>发布周五圣何塞 @WeAreDevs 世界大会北美站主旨演讲的详细笔记与注释文稿，覆盖2026年以来LLM与agents全部进展的rundown。</p></div><div class="card-fact"><strong>价值与适用条件</strong><p>演讲笔记+注释文稿已发布；内容为2026年LLM与agents进展综述（细节在链接正文）。</p></div><p class="conditions">作者身份已核验(simonwillison.net/about/)；帖子2026-09-29发布；演讲视频由他人录制；笔记细节未逐条重读。</p><p class="value"><strong>为什么读</strong>开发者需要可追溯的年度进展综述</p><p><strong>主要限制</strong> 演讲视频由他人录制；笔记细节未逐条重读。</p><div class="action"><strong>阅读建议</strong>开发者可通读笔记作为2026年LLM/agents进展索引，再按需展开原文链接。</div><div class="links"><a href="https://x.com/simonw/status/2104630129528037415" rel="noopener noreferrer">原文 ↗</a><a href="https://x.com/simonw/status/2104630129528037415" rel="noopener noreferrer">日期依据 ↗</a></div><details><summary>结论证据与阅读记录</summary><ul><li>Simon Willison发布Devs大会演讲的详细笔记与注释文稿，覆盖2026年以来LLM与agents进展。 · <a href="https://x.com/simonw/status/2104630129528037415" rel="noopener noreferrer">原帖正文</a><br><small>I&#x27;ve published detailed notes and an annotated transcript to accompany the video of the keynote I gave at @WeAreDevs World Congress North America in San Jose on Friday - here&#x27;s my rundown of everything that&#x27;s happened with LLMs and agents in 2026 so far</small></li></ul><dl><dt>发布演讲笔记与注释文稿，覆盖2026年以来LLM与agents进展rundown</dt><dd>指标：作者报告的发布行为；比较：无对比；条件：原帖核验(2026-09-29发布)，演讲2026-10-02周五圣何塞<br>浏览器读取原帖确认内容与作者身份</dd></dl><p>发现渠道：Simon Willison</p></details></article></div></section><details class="collection"><summary>入选说明与来源覆盖</summary><p>已录用会议／正式期刊本期核验入选 0/5，缺额仅用其他已核验合格候选补位。</p><p>Semantic Scholar 推荐本期核验入选 0/2，缺额仅用其他已核验合格候选补位。</p><p>资讯精选 2/10 条，不以营销或重复内容补位。</p><p>x:karpathy · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:jeremyphoward · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:peteryang · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:garrytan · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:googlelabs · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:antirez · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:chipro · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:lilianweng · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:rauchg · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:rasbt · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:swyx · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:simonw · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:id_aa_carmack · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:hamelhusain · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:ryolu_ · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:bcherny · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:eugeneyan · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:realmadhuguru · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:thenanyu · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>x:demishassabis · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>paper:jmlr · index_only · 读取官方索引 7 个候选链接，文章日期和正文待核验</p><p>paper:acl · index_only · 读取官方索引 0 个候选链接，文章日期和正文待核验</p><p>paper:neurips · index_only · 读取官方索引 40 个候选链接，文章日期和正文待核验</p><p>paper:mlsys · index_only · 读取官方索引 8 个候选链接，文章日期和正文待核验</p><p>paper:osdi · index_only · 读取官方索引 4 个候选链接，文章日期和正文待核验</p><p>paper:nature-mi · index_only · 读取官方索引 29 个候选链接，文章日期和正文待核验</p><p>paper:pvldb · index_only · 读取官方索引 1 个候选链接，文章日期和正文待核验</p><p>paper:tmlr · sample · OpenReview官方接口受阻：OpenReview响应不是有效JSON；最终决定改由正常浏览器核验，未完成区间保留；官方目录补充 12 条待核验线索，不视为 API 已恢复</p><p>paper:icml · sample · 分层处理官方论文详情／决定入口 12 条；未完成 12415 条，日期与最终决定逐条审核，非完整窗口覆盖</p><p>paper:iclr · sample · OpenReview官方接口受阻：OpenReview响应不是有效JSON；最终决定改由正常浏览器核验，未完成区间保留；官方目录补充 0 条待核验线索，不视为 API 已恢复</p><p>discovery:hf · sample · HF 每日列表，原论文日期待 arXiv 核验</p><p>news:openai · sample · 读取 RSS 最新条目；RSS 不保证完整两个月覆盖</p><p>news:anthropic · index_only · 读取官方索引 14 个候选链接，文章日期和正文待核验</p><p>news:deepmind · sample · 读取 RSS 最新条目；RSS 不保证完整两个月覆盖</p><p>news:google-research · sample · 读取 RSS 最新条目；RSS 不保证完整两个月覆盖</p><p>paper:eccv · sample · 分层处理官方论文详情／决定入口 12 条；未完成 6106 条，日期与最终决定逐条审核，非完整窗口覆盖</p><p>news:meta · index_only · 读取官方索引 6 个候选链接，文章日期和正文待核验</p><p>discovery:semantic-scholar · sample · 正向 10、负向 0 个明确种子；推荐元数据等待官方核验</p><p>news:qwen · unknown · 使用已登录 Codex 浏览器核验固定作者身份并读取原创帖子</p><p>news:huggingface · sample · 读取 RSS 最新条目；RSS 不保证完整两个月覆盖</p><p>news:deepseek · index_only · 读取官方组织仓库，具体技术发布需进一步核验</p><p>news:microsoft · sample · 读取 RSS 最新条目；RSS 不保证完整两个月覆盖</p><p>reddit:machinelearning · sample · 读取 RSS 最新条目；RSS 不保证完整两个月覆盖</p><p>paper:cvpr · sample · 分层处理官方论文详情／决定入口 12 条；未完成 6833 条，日期与最终决定逐条审核，非完整窗口覆盖</p><p>news:nvidia · sample · 读取 RSS 最新条目；RSS 不保证完整两个月覆盖</p><p>news:hn · sample · HN 前 60 条，仅发现线索，原文日期与内容待核验</p><p>news:github-trending · index_only · 发现 GitHub Trending 项目，未以星数／提交时间推断技术新进展</p><p>youtube:yannic · unknown · HTTP 404</p><p>reddit:localllama · unknown · 接口限流，按 Retry-After 延后</p><p>reddit:languagetechnology · unknown · 接口限流，按 Retry-After 延后</p><p>youtube:fireship · unknown · HTTP 404</p><p>reddit:computervision · unknown · 接口限流，按 Retry-After 延后</p><p>reddit:reinforcementlearning · unknown · 接口限流，按 Retry-After 延后</p><p>discovery:arxiv · sample · 读取 31 页；历史补查 6200/28548；待完成增量区间 2；按首次提交时间筛选，未完成分页不代表全窗口覆盖</p><p>逐条结论支持理由重复，请具体核对指标、基线和实验条件</p><p>逐条结论支持理由重复，请具体核对指标、基线和实验条件</p><p>重点精读不足两篇，按实际阅读深度展示</p></details><p><a href="themes.html">按研究主题回看 →</a></p></div><aside class="side"><div class="side-inner"><p>本期目录</p><a href="#arxiv">arXiv 前沿</a><a href="#news-1">工程实践</a><a href="#news-3">深度解读</a></div></aside></div></main><footer><span>技术日报</span><a href="index.html">查看全部日报 →</a></footer></body></html>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>技术日报 · 2026-10-12 · Janus Client</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23D97757'/><text x='50' y='68' font-size='52' font-family='serif' fill='white' text-anchor='middle'>J</text></svg>">
+<link rel="stylesheet" href="https://miaoda.feishu.cn/fonts/css2?family=Newsreader:opsz,wght@6..72,300;6..72,400;6..72,500;6..72,600;6..72,700&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --bg: #F9F7F4;
+    --bg-elevated: #FFFFFF;
+    --text: #1A1A1A;
+    --text-secondary: #5C5C5C;
+    --text-tertiary: #8A8A8A;
+    --border: #E5E1DB;
+    --border-light: #EFECE7;
+    --accent: #D97757;
+    --accent-soft: #F5E6E0;
+    --code-bg: #F3F0EC;
+    --max-width: 720px;
+    --max-width-wide: 960px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Nav */
+  .nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(249, 247, 244, 0.85);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  }
+  .nav-inner {
+    max-width: var(--max-width-wide); margin: 0 auto; padding: 0 24px;
+    height: 60px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .nav, .nav-inner { transition: height 0.3s ease; }
+  .nav.scrolled { height: 48px; }
+  .nav.scrolled .nav-inner { height: 48px; }
+  .nav-logo {
+    font-family: 'Newsreader', serif; font-size: 18px; font-weight: 600;
+    letter-spacing: -0.02em; color: var(--text); text-decoration: none;
+    white-space: nowrap; display: inline-flex; align-items: baseline;
+  }
+  .nav-logo .ch {
+    display: inline-block; overflow: hidden;
+    transition: opacity 0.45s cubic-bezier(0.4,0,0.2,1), width 0.45s cubic-bezier(0.4,0,0.2,1);
+    vertical-align: baseline; line-height: 1;
+  }
+  .nav.scrolled .ch-anus, .nav.scrolled .ch-lient, .nav.scrolled .ch-space {
+    opacity: 0; width: 0 !important;
+  }
+  .nav-links { display: flex; gap: 28px; list-style: none; }
+  .nav-links a {
+    font-size: 14px; color: var(--text-secondary); text-decoration: none;
+    transition: color 0.2s; font-weight: 400;
+  }
+  .nav-links a:hover { color: var(--text); }
+
+  /* Hero */
+  .hero {
+    max-width: var(--max-width-wide); margin: 0 auto; padding: 80px 24px 48px;
+  }
+  .hero-meta {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 28px;
+    font-size: 13px; color: var(--text-tertiary); letter-spacing: 0.02em;
+  }
+  .hero h1 {
+    font-family: 'Newsreader', serif;
+    font-size: clamp(32px, 4.5vw, 48px);
+    font-weight: 500; line-height: 1.15; letter-spacing: -0.03em;
+    margin-bottom: 20px; color: var(--text);
+  }
+  .hero-subtitle {
+    font-size: 17px; color: var(--text-secondary); line-height: 1.6;
+    max-width: 580px; font-weight: 300;
+  }
+  .hero-stats {
+    display: flex; gap: 40px; margin-top: 36px; padding-top: 28px;
+    border-top: 1px solid var(--border-light);
+  }
+  .hero-stat .num {
+    font-family: 'Newsreader', serif; font-size: 28px; font-weight: 500;
+    color: var(--text); letter-spacing: -0.02em;
+  }
+  .hero-stat .label {
+    font-size: 12px; color: var(--text-tertiary); text-transform: uppercase;
+    letter-spacing: 0.06em; margin-top: 2px;
+  }
+
+  /* Article */
+  .article {
+    max-width: var(--max-width); margin: 0 auto; padding: 0 24px 80px;
+  }
+  .article h2 {
+    font-family: 'Newsreader', serif; font-size: 26px; font-weight: 500;
+    letter-spacing: -0.02em; margin-top: 64px; margin-bottom: 8px;
+    color: var(--text); line-height: 1.3;
+  }
+  .article h2:first-child { margin-top: 0; }
+  .section-desc {
+    font-size: 14px; color: var(--text-tertiary); margin-bottom: 32px;
+    font-weight: 300;
+  }
+
+  /* Paper card */
+  .paper {
+    padding: 32px 0; border-bottom: 1px solid var(--border-light);
+  }
+  .paper:last-child { border-bottom: none; }
+  .paper-eyebrow {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+    font-size: 12px; color: var(--text-tertiary); flex-wrap: wrap;
+  }
+  .paper-eyebrow .badge {
+    display: inline-block; padding: 3px 8px; border: 1px solid var(--border);
+    border-radius: 100px; font-size: 11px; color: var(--text-secondary);
+    background: var(--bg-elevated); letter-spacing: 0.02em;
+  }
+  .paper-eyebrow .dot { width: 3px; height: 3px; border-radius: 50%; background: var(--border); }
+  .paper-tags {
+    font-size: 12px; color: var(--text-tertiary); margin-bottom: 8px;
+    font-family: 'JetBrains Mono', monospace; font-weight: 400;
+  }
+  .paper h3 {
+    font-family: 'Newsreader', serif; font-size: 20px; font-weight: 600;
+    margin-bottom: 6px; line-height: 1.4; letter-spacing: -0.01em;
+  }
+  .paper h3 a {
+    color: var(--text); text-decoration: none;
+    border-bottom: 1px solid transparent; transition: border-color 0.2s, color 0.2s;
+  }
+  .paper h3 a:hover { color: var(--accent); border-bottom-color: var(--accent); }
+  .paper-date { font-size: 13px; color: var(--text-tertiary); margin-bottom: 18px; }
+  .paper-field { margin-bottom: 14px; }
+  .paper-field .field-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: var(--text-tertiary); margin-bottom: 4px;
+  }
+  .paper-field p {
+    font-size: 15px; line-height: 1.75; color: var(--text); margin: 0;
+  }
+  .paper-why {
+    background: var(--accent-soft); border-radius: 10px; padding: 18px 22px;
+    margin-top: 18px;
+  }
+  .paper-why .field-label { color: var(--accent); }
+  .paper-why p { font-size: 14px; color: var(--text-secondary); margin: 0; line-height: 1.7; }
+  .paper-links {
+    margin-top: 16px; display: flex; gap: 20px;
+  }
+  .paper-links a {
+    font-size: 13px; color: var(--accent); text-decoration: none;
+    border-bottom: 1px solid rgba(217,119,87,0.3); transition: border-color 0.2s;
+  }
+  .paper-links a:hover { border-bottom-color: var(--accent); }
+
+  /* TOC */
+  @media (min-width: 1200px) {
+    .toc {
+      position: fixed; right: calc((100vw - var(--max-width-wide)) / 2 - 200px);
+      top: 120px; width: 180px; font-size: 13px;
+    }
+    .toc-title {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-tertiary); margin-bottom: 16px; font-weight: 500;
+    }
+    .toc ul { list-style: none; }
+    .toc li { margin-bottom: 10px; }
+    .toc a {
+      color: var(--text-tertiary); text-decoration: none;
+      transition: color 0.2s; display: block; line-height: 1.5;
+    }
+    .toc a:hover, .toc a.active { color: var(--text); }
+  }
+  @media (max-width: 1199px) { .toc { display: none; } }
+
+  /* Footer */
+  .footer { background: #1A1A1A; padding: 44px 24px; }
+  .footer-inner {
+    max-width: var(--max-width-wide); margin: 0 auto;
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 16px;
+  }
+  .footer p { font-size: 13px; color: rgba(249,247,244,0.5); }
+  .footer-links { display: flex; gap: 24px; }
+  .footer-links a {
+    font-size: 13px; color: rgba(249,247,244,0.6);
+    text-decoration: none; transition: color 0.2s;
+  }
+  .footer-links a:hover { color: #F9F7F4; }
+
+  /* Reveal */
+  .reveal { opacity: 0; transform: translateY(12px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+  ::selection { background: var(--accent-soft); color: var(--text); }
+
+  @media (max-width: 640px) {
+    .hero { padding: 56px 20px 40px; }
+    .article { padding: 0 20px 56px; }
+    .nav-links { display: none; }
+    .hero-stats { gap: 24px; }
+    .article h2 { font-size: 22px; margin-top: 48px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="#" onclick="window.scrollTo({top:0,behavior:'smooth'});return false;" class="nav-logo">
+      <span class="ch ch-j">J</span><span class="ch ch-anus">anus</span><span class="ch ch-space">&nbsp;</span><span class="ch ch-c">C</span><span class="ch ch-lient">lient</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#arxiv">arXiv 前沿</a></li>
+      <li><a href="#engineering">工程实践</a></li>
+      <li><a href="#deep-dive">深度解读</a></li>
+      <li><a href="index.html">归档</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="hero-meta">
+    <span>2026 年 10 月 12 日</span>
+  </div>
+  <h1>技术日报</h1>
+  <p class="hero-subtitle">今日精选 10 篇 arXiv 前沿论文、1 条工程实践与 1 篇深度解读，覆盖强化学习、扩散模型、机器人学习、长上下文推理与视频理解。</p>
+  <div class="hero-stats">
+    <div class="hero-stat"><div class="num">10</div><div class="label">arXiv 论文</div></div>
+    <div class="hero-stat"><div class="num">1</div><div class="label">工程实践</div></div>
+    <div class="hero-stat"><div class="num">1</div><div class="label">深度解读</div></div>
+    <div class="hero-stat"><div class="num">12</div><div class="label">总条目</div></div>
+  </div>
+</header>
+
+<aside class="toc">
+  <div class="toc-title">目录</div>
+  <ul>
+    <li><a href="#arxiv" class="active">arXiv 前沿</a></li>
+    <li><a href="#engineering">工程实践</a></li>
+    <li><a href="#deep-dive">深度解读</a></li>
+  </ul>
+</aside>
+
+<article class="article">
+
+<!-- ===== arXiv 前沿 ===== -->
+<h2 id="arxiv">arXiv 前沿</h2>
+<p class="section-desc">以下论文均为预印本，未经同行评审；阅读范围以官方摘要为主。</p>
+<div class="paper">
+  <div class="paper-eyebrow">
+    <span class="badge">预印本</span><span class="dot"></span><span>arXiv</span><span class="dot"></span><span>阅读：摘要</span>
+  </div>
+  <div class="paper-tags">reinforcement learning · LLM agents · rollout intervention</div>
+  <h3><a href="https://arxiv.org/abs/2610.13438v1" target="_blank" rel="noopener">Rollout-Time Intervention：突破策略边界的 Agentic 强化学习</a></h3>
+  <div class="paper-date">2026-10-09</div>
+  <div class="paper-field"><div class="field-label">研究问题</div><p>现有 agent RL 受 on-policy 推理瓶颈约束：任务超出模型当前能力边界时有效轨迹极其稀疏，训练常崩溃。</p></div>
+  <div class="paper-field"><div class="field-label">核心贡献</div><p>RTI 利用 reward 侧证据（评估 rubric）在 rollout 期间将错误轨迹转化为成功轨迹，为策略很少独立解决的任务提供有效学习信号；过滤分布偏移过大的干预轨迹后引导策略优化。</p></div>
+  <div class="paper-field"><div class="field-label">结果与条件</div><p>五个基准上 RTI 一致优于 RL 基线，使后训练策略逼近更强当代 LLM 并超越原始能力边界。</p></div>
+  <div class="paper-why">
+    <div class="field-label">为什么读</div><p>on-policy 推理瓶颈限制 agent RL；用评估 rubric 在 rollout 时修正轨迹可为困难任务提供学习信号，关注分布偏移过滤。</p>
+  </div>
+  <div class="paper-links"><a href="https://arxiv.org/abs/2610.13438v1" target="_blank" rel="noopener">原文 ↗</a></div>
+</div>
+
+<div class="paper">
+  <div class="paper-eyebrow">
+    <span class="badge">预印本</span><span class="dot"></span><span>arXiv</span><span class="dot"></span><span>阅读：摘要</span>
+  </div>
+  <div class="paper-tags">diffusion language model · tool-use agent · chemistry reasoning</div>
+  <h3><a href="https://arxiv.org/abs/2610.13330v1" target="_blank" rel="noopener">ChemDiffAgent：工具集成化学推理的掩码扩散语言智能体</a></h3>
+  <div class="paper-date">2026-10-09</div>
+  <div class="paper-field"><div class="field-label">研究问题</div><p>工具集成化学推理智能体多基于自回归范式，受因果注意力与从左到右生成约束，难做双向分子理解、全局工具规划与多源证据整合。</p></div>
+  <div class="paper-field"><div class="field-label">核心贡献</div><p>首个掩码扩散语言智能体：将化学推理重构为推理与工具使用轨迹交错上的迭代去噪，全轨迹上下文联合决定工具使用；两阶段后训练（agentic SFT + 方差缩减偏好优化）；构建覆盖六化学任务的单/多轮工具使用基准。</p></div>
+  <div class="paper-field"><div class="field-label">结果与条件</div><p>匹配预算与评估下一致优于自回归智能体，整体提升约 20%；8B 模型性能媲美甚至超过 GPT 5.5 与 Claude Opus 4.7 等更大前沿模型。</p></div>
+  <div class="paper-why">
+    <div class="field-label">为什么读</div><p>化学工具集成推理可用扩散范式突破自回归限制；关注全轨迹工具决策。</p>
+  </div>
+  <div class="paper-links"><a href="https://arxiv.org/abs/2610.13330v1" target="_blank" rel="noopener">原文 ↗</a></div>
+</div>
+
+<div class="paper">
+  <div class="paper-eyebrow">
+    <span class="badge">预印本</span><span class="dot"></span><span>arXiv</span><span class="dot"></span><span>阅读：摘要</span>
+  </div>
+  <div class="paper-tags">world action model · driving · reinforcement learning · 3D gaussian splatting</div>
+  <h3><a href="https://arxiv.org/abs/2610.13781v1" target="_blank" rel="noopener">SimVTA：仿真锚定的视频-轨迹对齐用于驾驶世界动作模型</a></h3>
+  <div class="paper-date">2026-10-10</div>
+  <div class="paper-field"><div class="field-label">研究问题</div><p>驾驶世界动作模型（WAM）从配对轨迹与未来观测学习，但驾驶日志只含记录轨迹的未来视频，强化学习探索的替代轨迹缺乏对应视觉监督。</p></div>
+  <div class="paper-field"><div class="field-label">核心贡献</div><p>仿真锚定后训练框架：对每个观测采样候选轨迹，用真实世界模拟器（World Engine）在 3DGS 重建场景渲染高奖励候选的未来视频；有限渲染预算下优先给高误差未来分配视频监督；GRPO 优化轨迹规划，flow-matching 损失更新共享表示。推理时无模拟器调用。</p></div>
+  <div class="paper-field"><div class="field-label">结果与条件</div><p>NAVSIM v1 上 PDMS 从 86.2 提升至 91.3（+5.1）；NAVSIM v2 达 88.2 EPDMS，HUGSIM 闭环评估平均 HD-Score 38.8。</p></div>
+  <div class="paper-why">
+    <div class="field-label">为什么读</div><p>替代轨迹缺视觉监督是驾驶 WAM 强化学习瓶颈；可用仿真渲染视频补足，关注渲染预算分配。</p>
+  </div>
+  <div class="paper-links"><a href="https://arxiv.org/abs/2610.13781v1" target="_blank" rel="noopener">原文 ↗</a></div>
+</div>
+
+<div class="paper">
+  <div class="paper-eyebrow">
+    <span class="badge">预印本</span><span class="dot"></span><span>arXiv</span><span class="dot"></span><span>阅读：摘要</span>
+  </div>
+  <div class="paper-tags">diffusion models · reinforcement learning · reward optimization</div>
+  <h3><a href="https://arxiv.org/abs/2610.12572v1" target="_blank" rel="noopener">DiffusionART：高效、稳定、可扩展的扩散模型强化</a></h3>
+  <div class="paper-date">2026-10-09</div>
+  <div class="paper-field"><div class="field-label">研究问题</div><p>在线 RL 微调扩散模型受黑盒奖励约束：Flow-GRPO 等逆过程方法受差信用分配限制效率，DiffusionNFT 等正过程方法高效但依赖精心调参的 EMA off-policy 训练才稳定。</p></div>
+  <div class="paper-field"><div class="field-label">核心贡献</div><p>揭示 NFT 风格目标含隐藏的正向-反向一致性力；DiffusionART 将每提示奖励聚合为共享奖励提升方向，构造上消除一致性力，加 trust-region 掩码二次更新实现漂移自适应恢复且无需 EMA 调参；支持成对奖励模型。</p></div>
+  <div class="paper-field"><div class="field-label">结果与条件</div><p>HunyuanVideo-13B 上，达到 DiffusionNFT 与 Flow-GRPO-Fast 晚期平均奖励水平分别少用 12.02 与 11.72 倍 GPU 小时，同时平均训练奖励高 28.8% 与 53.0%。</p></div>
+  <div class="paper-why">
+    <div class="field-label">为什么读</div><p>扩散模型在线 RL 效率与稳定性难兼得；可去除 EMA 调参实现稳定高效训练，关注奖励聚合方向。</p>
+  </div>
+  <div class="paper-links"><a href="https://arxiv.org/abs/2610.12572v1" target="_blank" rel="noopener">原文 ↗</a></div>
+</div>
+
+<div class="paper">
+  <div class="paper-eyebrow">
+    <span class="badge">预印本</span><span class="dot"></span><span>arXiv</span><span class="dot"></span><span>阅读：摘要</span>
+  </div>
+  <div class="paper-tags">robot learning · action regression · flow matching · student-t</div>
+  <h3><a href="https://arxiv.org/abs/2610.12231v1" target="_blank" rel="noopener">残差建模弥合机器人学习回归与生成策略差距</a></h3>
+  <div class="paper-date">2026-10-09</div>
+  <div class="paper-field"><div class="field-label">研究问题</div><p>流匹配/扩散策略常优于 MSE 直接动作回归，差距通常归因于多模态演示；从统计建模视角，动作预测残差形态塑造策略优化，MSE 梯度过度偏向大残差观测损害优化。</p></div>
+  <div class="paper-field"><div class="field-label">核心贡献</div><p>分析真实机器人演示数据：残差尺度随状态显著变化且重尾。提出异方差 Student-t 动作回归（HT-Policies）：学习输入相关残差尺度并降低重尾影响；单前馈预测动作块，可复用预训练流匹配策略骨干。</p></div>
+  <div class="paper-field"><div class="field-label">结果与条件</div><p>四个仿真基准 + 真实机器人评估上，HT-Policies 成功率与生成策略基线相当（从零训练与预训练 VLA/WAM 微调），训练与推理更快。</p></div>
+  <div class="paper-why">
+    <div class="field-label">为什么读</div><p>MSE 回归与生成策略差距的统计根源；直接回归可与生成策略竞争，关注残差统计建模。</p>
+  </div>
+  <div class="paper-links"><a href="https://arxiv.org/abs/2610.12231v1" target="_blank" rel="noopener">原文 ↗</a></div>
+</div>
+
+<div class="paper">
+  <div class="paper-eyebrow">
+    <span class="badge">预印本</span><span class="dot"></span><span>arXiv</span><span class="dot"></span><span>阅读：摘要</span>
+  </div>
+  <div class="paper-tags">speculative decoding · KV cache · reinforcement learning · sparse attention</div>
+  <h3><a href="https://arxiv.org/abs/2610.13202v1" target="_blank" rel="noopener">S3R：基于自稀疏投机解码的快速忠实 RL Rollout</a></h3>
+  <div class="paper-date">2026-10-09</div>
+  <div class="paper-field"><div class="field-label">研究问题</div><p>长上下文 RLVR 快速 rollout 需减少 KV 缓存流量但不改变策略优化所用的响应组；直接稀疏采样会改变响应组分布，逐响应精确重加权也无法恢复期望稠密策略更新。</p></div>
+  <div class="paper-field"><div class="field-label">核心贡献</div><p>S3R 用稀疏注意力提议 token，全注意力验证 + 精确投机采样生成响应；草稿与验证共享同一策略参数，无需独立草稿模型；KV 感知调度器限制重复卸载/恢复。</p></div>
+  <div class="paper-field"><div class="field-label">结果与条件</div><p>长上下文数学推理上，S3R 使 Qwen3 模型端到端训练吞吐达自回归 rollout 的 1.39 倍，任务性能相当；稀疏草稿预算下稳定训练而直接稀疏采样不稳定。</p></div>
+  <div class="paper-why">
+    <div class="field-label">为什么读</div><p>RLVR rollout 需降 KV 流量且保响应组分布；稀疏注意力可用于加速而不改变学习分布，关注 KV 调度与草稿共享。</p>
+  </div>
+  <div class="paper-links"><a href="https://arxiv.org/abs/2610.13202v1" target="_blank" rel="noopener">原文 ↗</a></div>
+</div>
+
+<div class="paper">
+  <div class="paper-eyebrow">
+    <span class="badge">预印本</span><span class="dot"></span><span>arXiv</span><span class="dot"></span><span>阅读：摘要</span>
+  </div>
+  <div class="paper-tags">vision-language-action · robot foundation model · autoregressive</div>
+  <h3><a href="https://arxiv.org/abs/2608.11739v1" target="_blank" rel="noopener">G0.5：单一自回归流实现机器人推理与动作</a></h3>
+  <div class="paper-date">2026-08-12 · 历史补查首次推荐</div>
+  <div class="paper-field"><div class="field-label">研究问题</div><p>主流 VLA 配方耦合预训练 VLM 与独立训练的流匹配动作专家，使 VLM 沦为上下文编码器而非决策者。</p></div>
+  <div class="paper-field"><div class="field-label">核心贡献</div><p>预训练自回归 VLA：单 transformer 解码器单目标同时发射推理与动作 token；可学习跨本体动作 tokenizer、原生思维链流（任务分解/物体接地/动作提示与动作 token 交错）、视觉记忆模块注入多秒历史。</p></div>
+  <div class="paper-field"><div class="field-label">结果与条件</div><p>预训练后 7 个独立体系超 SOTA：R1lite/R1pro 真实微调 76.7%（vs π0.5 的 53.3%）、2025 BEHAVIOR 挑战 50 长时任务 31.4%（vs 26.3%）、DROID 后训练零样本迁移 82.5%、LIBERO 98.9%、RoboTwin 2.0 93.3%、SimplerEnv-Bridge 87.3%。</p></div>
+  <div class="paper-why">
+    <div class="field-label">为什么读</div><p>VLM 在 VLA 中沦为上下文编码器；单流自回归 VLA 可让 VLM 成为决策者，关注跨本体 tokenizer 与视觉记忆。</p>
+  </div>
+  <div class="paper-links"><a href="https://arxiv.org/abs/2608.11739v1" target="_blank" rel="noopener">原文 ↗</a></div>
+</div>
+
+<div class="paper">
+  <div class="paper-eyebrow">
+    <span class="badge">预印本</span><span class="dot"></span><span>arXiv</span><span class="dot"></span><span>阅读：摘要</span>
+  </div>
+  <div class="paper-tags">audio-visual · temporal grounding · multimodal LLM · reinforcement learning</div>
+  <h3><a href="https://arxiv.org/abs/2610.09408v1" target="_blank" rel="noopener">TiTok：多段时间定位的视听 LLM</a></h3>
+  <div class="paper-date">2026-10-07</div>
+  <div class="paper-field"><div class="field-label">研究问题</div><p>未剪辑视频中的视听多段定位（AV-MSG）需融合视听证据并预测查询对应多段，视觉模型忽略声学线索，视听模型常无法校准事件数量。</p></div>
+  <div class="paper-field"><div class="field-label">核心贡献</div><p>TiTok 为每查询定位任意数量时间事件段；Time Token Interleaving（TTI）将特殊时间 token 注入视听流对齐输入侧时间感知与输出侧时间预测；解耦多段奖励（全局/局部/计数/精度/格式）配 GDPO 优化；建立 UnAV-100 评估协议与 CountF1 指标。</p></div>
+  <div class="paper-field"><div class="field-label">结果与条件</div><p>TiTok 达 65.7 mIoU 与 0.58 CountF1，SOTA 性能。ACCV 2026 录用（arXiv comments 标记）。</p></div>
+  <div class="paper-why">
+    <div class="field-label">为什么读</div><p>视听多段定位的事件数校准问题；需显式时间 token 与计数奖励，关注 CountF1。</p>
+  </div>
+  <div class="paper-links"><a href="https://arxiv.org/abs/2610.09408v1" target="_blank" rel="noopener">原文 ↗</a></div>
+</div>
+
+<div class="paper">
+  <div class="paper-eyebrow">
+    <span class="badge">预印本</span><span class="dot"></span><span>arXiv</span><span class="dot"></span><span>阅读：摘要</span>
+  </div>
+  <div class="paper-tags">KV cache · speculative decoding · long context · serving</div>
+  <h3><a href="https://arxiv.org/abs/2610.13708v1" target="_blank" rel="noopener">Adaptive DHiSparse：负载自适应 KV 层级上的投机解码</a></h3>
+  <div class="paper-date">2026-10-09</div>
+  <div class="paper-field"><div class="field-label">研究问题</div><p>长上下文服务在硬件达有效吞吐前 KV 内存先耗尽；HiSparse 将历史存主机内存仅取选中项，但每负载用单一缓存预算且不支持草稿模型投机解码。</p></div>
+  <div class="paper-field"><div class="field-label">核心贡献</div><p>支持分层稀疏 KV 上的投机解码并自适应驻留：保护工作集，GPU 内存空闲时保留额外历史，其余经精确融合检索恢复；保留 DSpark/DFlash2 提议与接受规则。</p></div>
+  <div class="paper-field"><div class="field-label">结果与条件</div><p>100K 上下文并发 128 下 GLM-5.3 配 DFlash2 达 793 输出 tokens/s 每解码 GPU，1.45 倍 HiSparse；同延迟界限下支持至 4 倍并发、2.3~3.7 倍输出；DeepSeek-V4.1-Flash 500K 上下文并发 512 下 DSpark 输出为驻留服务 1.85 倍。</p></div>
+  <div class="paper-why">
+    <div class="field-label">为什么读</div><p>长上下文 KV 内存瓶颈与投机解码兼容性；投机解码可与分层稀疏 KV 结合，关注负载自适应驻留。</p>
+  </div>
+  <div class="paper-links"><a href="https://arxiv.org/abs/2610.13708v1" target="_blank" rel="noopener">原文 ↗</a></div>
+</div>
+
+<div class="paper">
+  <div class="paper-eyebrow">
+    <span class="badge">预印本</span><span class="dot"></span><span>arXiv</span><span class="dot"></span><span>阅读：摘要</span>
+  </div>
+  <div class="paper-tags">long video understanding · retrieval augmented generation · multimodal</div>
+  <h3><a href="https://arxiv.org/abs/2610.08674v1" target="_blank" rel="noopener">EC-RAG：长视频理解的事件链检索增强生成</a></h3>
+  <div class="paper-date">2026-10-07</div>
+  <div class="paper-field"><div class="field-label">研究问题</div><p>长视频 LVLM 常独立处理帧，难捕获跨事件时间依赖；现有检索增强多在帧/片段级操作，无法建模事件演化与相互关系。</p></div>
+  <div class="paper-field"><div class="field-label">核心贡献</div><p>训练免费框架：问答前将视频组织为显式事件链——先分语义一致片段，多模态信号表示各片段，再链成保留时序与事件关系的结构链；查询时识别相关事件并聚合多模态证据；即插即用兼容现有 LVLM 骨干。</p></div>
+  <div class="paper-field"><div class="field-label">结果与条件</div><p>Video-MME、MLVU、LongVideoBench 上事件中心设计一致优于帧级检索基线，突出时序结构建模重要性。</p></div>
+  <div class="paper-why">
+    <div class="field-label">为什么读</div><p>长视频 LVLM 时序依赖建模不足；应将内容组织为事件链，关注事件级抽象与多模态融合。</p>
+  </div>
+  <div class="paper-links"><a href="https://arxiv.org/abs/2610.08674v1" target="_blank" rel="noopener">原文 ↗</a></div>
+</div>
+
+<!-- ===== 工程实践 ===== -->
+<h2 id="engineering">工程实践</h2>
+<p class="section-desc">来自社区的实战经验与调研。</p>
+
+<div class="paper">
+  <div class="paper-eyebrow">
+    <span class="badge">社区调研</span><span class="dot"></span><span>Chip Huyen</span><span class="dot"></span><span>阅读：帖子</span>
+  </div>
+  <h3><a href="https://x.com/chipro/status/2092303355670606292" target="_blank" rel="noopener">Chip Huyen 调研 Agent Skills 最佳实践：安装数量与选择质量</a></h3>
+  <div class="paper-date">2026-08-26 · 历史补查首次推荐</div>
+  <div class="paper-field"><div class="field-label">解决什么问题</div><p>Agent 技能（skills）安装多少合适、如何评估成为实操问题，社区缺乏实证共识。</p></div>
+  <div class="paper-field"><div class="field-label">技术变化</div><p>Chip Huyen 发起投票调研最常安装的技能数量并追问 token 成本与评估方法；社区回复指出技能超过约 6 个后失败模式从"能否完成任务"转为"是否选对技能"。</p></div>
+  <div class="paper-field"><div class="field-label">价值与适用条件</div><p>投票 820 票：0 个 16.5%、1~5 个 36%、6~10 个 17.4%、>10 个 30.1%；社区回复强调技能确定性/可测性，超过约 6 个后失败模式转向技能选择质量。</p></div>
+  <div class="paper-why">
+    <div class="field-label">阅读建议</div><p>构建 agent 系统时优先可测、确定性（CLI）技能并监控选择质量，而非只追求数量。</p>
+  </div>
+  <div class="paper-links"><a href="https://x.com/chipro/status/2092303355670606292" target="_blank" rel="noopener">原帖 ↗</a></div>
+</div>
+
+<!-- ===== 深度解读 ===== -->
+<h2 id="deep-dive">深度解读</h2>
+<p class="section-desc">长篇综述与可追溯的技术解读。</p>
+
+<div class="paper">
+  <div class="paper-eyebrow">
+    <span class="badge">演讲笔记</span><span class="dot"></span><span>Simon Willison</span><span class="dot"></span><span>阅读：帖子</span>
+  </div>
+  <h3><a href="https://x.com/simonw/status/2104630129528037415" target="_blank" rel="noopener">Simon Willison 发布 Devs 世界大会演讲笔记与注释文稿</a></h3>
+  <div class="paper-date">2026-09-29 · 历史补查首次推荐</div>
+  <div class="paper-field"><div class="field-label">解决什么问题</div><p>LLM 与 agent 在 2026 年的进展快速演进，需要可追溯的演讲级综述帮助开发者跟上。</p></div>
+  <div class="paper-field"><div class="field-label">技术变化</div><p>发布周五圣何塞 @WeAreDevs 世界大会北美站主旨演讲的详细笔记与注释文稿，覆盖 2026 年以来 LLM 与 agents 全部进展的 rundown。</p></div>
+  <div class="paper-field"><div class="field-label">价值与适用条件</div><p>演讲笔记 + 注释文稿已发布；内容为 2026 年 LLM 与 agents 进展综述，可作为年度进展索引按需展开原文链接。</p></div>
+  <div class="paper-why">
+    <div class="field-label">阅读建议</div><p>开发者可通读笔记作为 2026 年 LLM/agents 进展索引，再按需展开原文链接。</p>
+  </div>
+  <div class="paper-links"><a href="https://x.com/simonw/status/2104630129528037415" target="_blank" rel="noopener">原帖 ↗</a></div>
+</div>
+</article>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <p>© 2026 Janus Client</p>
+    <div class="footer-links">
+      <a href="index.html">历史归档</a>
+      <a href="themes.html">主题回看</a>
+      <a href="#" onclick="showToast('RSS 订阅即将上线');return false;">RSS</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  function showToast(msg) {
+    let t = document.getElementById('toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'toast';
+      t.style.cssText = 'position:fixed;bottom:32px;left:50%;transform:translateX(-50%);background:#1A1A1A;color:#F9F7F4;padding:10px 20px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg; t.style.opacity = '1';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2000);
+  }
+
+  let logoMeasured = false;
+  function measureLogo() {
+    if (logoMeasured) return;
+    document.querySelectorAll('.nav-logo .ch').forEach(el => { el.style.width = el.offsetWidth + 'px'; });
+    logoMeasured = true;
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.05 });
+  document.querySelectorAll('.paper, h2, .hero-stats').forEach(el => {
+    el.classList.add('reveal'); observer.observe(el);
+  });
+
+  const tocLinks = document.querySelectorAll('.toc a');
+  const sections = document.querySelectorAll('h2[id]');
+  const nav = document.querySelector('.nav');
+  window.addEventListener('scroll', () => {
+    if (window.scrollY > 40) measureLogo();
+    nav.classList.toggle('scrolled', window.scrollY > 40);
+    let current = '';
+    sections.forEach(s => { if (s.getBoundingClientRect().top < 140) current = s.id; });
+    tocLinks.forEach(l => { l.classList.toggle('active', l.getAttribute('href') === '#' + current); });
+  });
+</script>
+</body>
+</html>
